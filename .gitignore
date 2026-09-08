@@ -1,0 +1,21 @@
+# Python / môi trường
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+# Thông tin cục bộ
+.env
+.env.*
+!.env.example
+.DS_Store
+Thumbs.db
+# Dữ liệu / mô hình: giữ README mô tả
+/data/raw/*
+!/data/raw/README.md
+/data/processed/*
+!/data/processed/README.md
+/models/*
+!/models/README.md
+/results/tmp/
+*.zip

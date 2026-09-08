@@ -1,0 +1,50 @@
+{
+  "project": "quantization-har",
+  "seed": 42,
+  "paths": {
+    "raw_data": "data/raw",
+    "processed_data": "data/processed",
+    "models": "models",
+    "results": "results"
+  },
+  "dataset": {
+    "name": "UCI-HAR",
+    "input_shape": null,
+    "channel_order": [],
+    "labels": [],
+    "split_policy": "official_test_subject_disjoint_validation_from_train",
+    "normalization": "fit_on_train_only"
+  },
+  "model": {
+    "architecture": null,
+    "confirmed_against_paper": false
+  },
+  "training": {
+    "epochs": null,
+    "batch_size": null,
+    "learning_rate": null
+  },
+  "quantization": {
+    "method": "PTQ_INT8",
+    "calibration_sizes": [
+      50,
+      200,
+      500
+    ],
+    "calibration_seeds": [
+      11,
+      22,
+      33
+    ],
+    "selection_split": "train"
+  },
+  "evaluation": {
+    "selection_split": "validation",
+    "final_split": "test",
+    "metrics": [
+      "accuracy_pct",
+      "macro_f1",
+      "model_size_bytes"
+    ]
+  }
+}

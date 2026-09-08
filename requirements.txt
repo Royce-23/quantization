@@ -1,0 +1,4 @@
+# Bộ khung dùng thư viện chuẩn Python, chưa có dependency bắt buộc.
+# TODO CẢ NHÓM: thống nhất và ghi phiên bản sau khi chạy thử thành công.
+# Thư viện dự kiến khi triển khai: numpy, tensorflow, scikit-learn, matplotlib.
+# Chưa pin hoặc cài tự động để tránh ngụ ý môi trường AI đã được kiểm chứng.
