@@ -5,8 +5,9 @@ import sys
 from src.common import ROOT, load_config
 
 STAGES = {
-    "prepare": "prepare_data", "train": "train", "quantize": "quantize",
-    "evaluate": "evaluate", "summarize": "summarize_results", "plot": "plot_results",
+    "prepare": "prepare_data", "train": "train", "visualize-tv1": "visualize_tv1",
+    "quantize": "quantize", "evaluate": "evaluate",
+    "summarize": "summarize_results", "plot": "plot_results",
 }
 
 

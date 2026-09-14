@@ -30,6 +30,7 @@ python main.py --check
 python main.py --help
 python main.py prepare
 python main.py train
+python main.py visualize-tv1
 python main.py quantize
 python main.py evaluate
 python main.py summarize
@@ -51,6 +52,7 @@ python main.py train
 ```
 
 Lệnh `prepare` tự tải UCI-HAR nếu `data/raw/UCI HAR Dataset` chưa tồn tại. Lệnh `train` dùng cấu hình trong `configs/project.json` và lưu checkpoint tốt nhất theo validation accuracy.
+Lệnh `visualize-tv1` tạo bốn hình PNG trong `results/figures/tv1/` để kiểm tra dữ liệu, lịch sử huấn luyện, kiến trúc và ma trận nhầm lẫn.
 
 ## Phạm vi nghiên cứu
 

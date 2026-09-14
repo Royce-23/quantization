@@ -1,5 +1,5 @@
 tensorflow-cpu==2.16.1
 numpy==1.26.4
 scikit-learn==1.5.2
+matplotlib==3.9.2
 pytest==8.3.3
-# Chưa pin hoặc cài tự động để tránh ngụ ý môi trường AI đã được kiểm chứng.

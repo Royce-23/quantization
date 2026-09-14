@@ -67,9 +67,12 @@ python -m pip install -r requirements.txt
 python main.py --check
 python main.py prepare
 python main.py train
+python main.py visualize-tv1
 ```
 
 `prepare` tự tải dữ liệu nếu cần. `train` luôn đọc `configs/project.json`, dùng seed 42, chạy đủ 300 epoch và lưu model có validation accuracy cao nhất.
+
+`visualize-tv1` đọc đúng checkpoint và dữ liệu đã bàn giao để tạo `training_curves.png`, `class_distribution.png`, `confusion_matrix_fp32.png` và `model_architecture.png` trong `results/figures/tv1/`.
 
 ## 6. Kết quả thực nghiệm
 

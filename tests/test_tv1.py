@@ -6,6 +6,7 @@ import numpy as np
 from src.model import build_model
 from src.prepare_data import split_and_normalize
 from src.train import _learning_rate, _macro_f1
+from src.visualize_tv1 import _confusion_matrix
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -47,3 +48,13 @@ def test_model_contract_and_macro_f1():
     assert model.count_params() == 10726
     labels = np.arange(6)
     assert _macro_f1(labels, labels, 6) == 1.0
+
+
+def test_visualization_confusion_matrix_counts_predictions():
+    y_true = np.array([0, 0, 1, 2, 2])
+    y_pred = np.array([0, 1, 1, 2, 0])
+    matrix = _confusion_matrix(np, y_true, y_pred, 3)
+    np.testing.assert_array_equal(
+        matrix,
+        np.array([[1, 1, 0], [0, 1, 0], [1, 0, 1]]),
+    )
