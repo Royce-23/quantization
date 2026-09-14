@@ -1,3 +1,8 @@
 # models
 
-Thư mục chờ đầu ra nghiên cứu; hiện chưa có dữ liệu/mô hình/biểu đồ. Xem docs/CONTRACT.md và README ở gốc dự án.
+Artifact TV1:
+
+- `baseline.keras`: checkpoint FP32 tốt nhất theo validation accuracy;
+- `baseline_metadata.json`: SHA-256, kiến trúc, cấu hình, phiên bản và metric.
+
+TV2 phải dùng đúng checkpoint ID trong metadata cho mọi cấu hình calibration.

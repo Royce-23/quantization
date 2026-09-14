@@ -30,27 +30,27 @@
 
 | Quyết định | Giá trị nhóm chốt |
 | --- | --- |
-| Cấu hình mạng / vị trí trong paper | Chưa chốt cấu hình triển khai |
-| Kích thước đầu vào và thứ tự kênh | Chốt sau khi kiểm tra dữ liệu |
+| Cấu hình mạng / vị trí trong paper | ResNetv1-6, 32 filters; Hình 4 và mục 6.1.1 |
+| Kích thước đầu vào và thứ tự kênh | `(128, 9)`; xem `data/processed/preprocess.json` |
 | Bộ chia train / validation / test | Giữ test chính thức; tách validation theo người trong train |
 | Công thức chuẩn hóa | Chỉ tính tham số từ train; lưu để dùng chung |
-| Framework và phiên bản | Ghi phiên bản thực tế sau khi chạy được |
-| Checkpoint FP32 chính thức | Ghi tên file và mã nhận diện |
+| Framework và phiên bản | Python 3.10.12, TensorFlow CPU 2.16.1, NumPy 1.26.4 |
+| Checkpoint FP32 chính thức | `models/baseline.keras`; SHA-256 bắt đầu `aa323b3e55d4` |
 | Ngày bắt đầu / hạn nộp | Điền ngày |
 
 ## 3. TV1 — Dữ liệu và mô hình FP32
 
 ### Checklist
 
-- [ ] Đọc phần dữ liệu, kiến trúc, huấn luyện trong paper; ghi thông số chưa được công bố.
-- [ ] Nạp các cửa sổ tín hiệu UCI-HAR; xác nhận không nhầm với bảng đặc trưng tính sẵn.
-- [ ] Kiểm tra số mẫu, nhãn, chiều tensor, thứ tự kênh và giá trị bất thường.
-- [ ] Chuẩn bị bộ chia train/validation/test, tránh trộn dữ liệu cùng người qua train và validation.
-- [ ] Tính chuẩn hóa từ train; lưu tham số và ánh xạ nhãn.
-- [ ] Dựng mạng và bàn giao sớm một mô hình huấn luyện thử cho TV2/TV3.
-- [ ] Huấn luyện baseline; chọn checkpoint bằng validation.
-- [ ] Chốt checkpoint, cấu hình, seed và hướng dẫn chạy lại.
-- [ ] Viết phần báo cáo: bài toán, dữ liệu, kiến trúc và huấn luyện.
+- [x] Đọc phần dữ liệu, kiến trúc, huấn luyện trong paper; ghi thông số chưa được công bố.
+- [x] Nạp các cửa sổ tín hiệu UCI-HAR; xác nhận không nhầm với bảng đặc trưng tính sẵn.
+- [x] Kiểm tra số mẫu, nhãn, chiều tensor, thứ tự kênh và giá trị bất thường.
+- [x] Chuẩn bị bộ chia train/validation/test, tránh trộn dữ liệu cùng người qua train và validation.
+- [x] Tính chuẩn hóa từ train; lưu tham số và ánh xạ nhãn.
+- [x] Dựng mạng và bàn giao sớm một mô hình huấn luyện thử cho TV2/TV3.
+- [x] Huấn luyện baseline; chọn checkpoint bằng validation.
+- [x] Chốt checkpoint, cấu hình, seed và hướng dẫn chạy lại.
+- [x] Viết phần báo cáo: bài toán, dữ liệu, kiến trúc và huấn luyện.
 
 ### File phụ trách dự kiến
 
@@ -251,4 +251,3 @@ Không commit dữ liệu lớn, môi trường Python, cache hoặc checkpoint 
 - [ ] README ghi môi trường, dữ liệu và thứ tự chạy.
 - [ ] Cả ba hiểu luồng dữ liệu → FP32 → INT8 → đánh giá.
 - [ ] Mỗi người trình bày phần mình phụ trách; demo hoàn toàn trên laptop.
-

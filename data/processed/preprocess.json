@@ -1,0 +1,53 @@
+{
+  "dtype": "float32",
+  "input_shape": [
+    128,
+    9
+  ],
+  "channel_order": [
+    "total_acc_x",
+    "total_acc_y",
+    "total_acc_z",
+    "body_gyro_x",
+    "body_gyro_y",
+    "body_gyro_z",
+    "body_acc_x",
+    "body_acc_y",
+    "body_acc_z"
+  ],
+  "labels": [
+    "WALKING",
+    "WALKING_UPSTAIRS",
+    "WALKING_DOWNSTAIRS",
+    "SITTING",
+    "STANDING",
+    "LAYING"
+  ],
+  "source_label_base": 1,
+  "model_label_base": 0,
+  "normalization": "z_score_per_channel_fit_on_model_train_only",
+  "normalization_applied": true,
+  "mean": [
+    0.8053908348083496,
+    0.029005933552980423,
+    0.08012030273675919,
+    0.004766441881656647,
+    -0.002092001959681511,
+    -0.0008822970557957888,
+    -0.0007941602962091565,
+    -0.0002519488916732371,
+    -0.0003059484588447958
+  ],
+  "std": [
+    0.4103222191333771,
+    0.39956697821617126,
+    0.35400480031967163,
+    0.4087248146533966,
+    0.3828623294830322,
+    0.2582959532737732,
+    0.19700127840042114,
+    0.1264660358428955,
+    0.10830903798341751
+  ],
+  "std_floor": 1e-06
+}

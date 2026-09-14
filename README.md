@@ -2,7 +2,7 @@
 
 Khảo sát ảnh hưởng của PTQ INT8 đến độ chính xác và dung lượng mô hình nhận diện hoạt động từ cảm biến UCI-HAR.
 
-**Đây là bộ khung để nhóm viết tiếp, chưa có mô hình huấn luyện hay kết quả nghiên cứu.** Các bước nghiên cứu báo rõ `CHUA TRIỂN KHAI` cho đến khi thành viên hoàn thiện. Chương trình kiểm tra bộ khung chạy được bằng thư viện chuẩn Python, không cần GPU, dataset hoặc TensorFlow.
+Phần TV1 (dữ liệu và baseline FP32) đã được triển khai, chạy đủ 300 epoch và bàn giao checkpoint. Phần TV2–TV3 vẫn giữ trạng thái `CHƯA TRIỂN KHAI` cho đến khi thành viên phụ trách hoàn thiện.
 
 ## Bắt đầu ngay trong VS Code
 
@@ -36,13 +36,21 @@ python main.py summarize
 python main.py plot
 ```
 
-Các lệnh từ `prepare` đến `plot` hiện chỉ dẫn tới module TODO và thoát mã 2. Đây là trạng thái có chủ ý, không phải đã chạy thí nghiệm thành công. Mỗi thành viên giữ hàm `run(config)` để main gọi được sau khi hoàn thiện.
+`prepare` và `train` đã chạy được. Các lệnh `quantize`, `evaluate`, `summarize`, `plot` hiện vẫn dẫn tới module TODO và thoát mã 2. Mỗi thành viên giữ hàm `run(config)` để main gọi được sau khi hoàn thiện.
 
 ## Môi trường nghiên cứu
 
 Tạo môi trường riêng bằng `python -m venv .venv`. Trên Windows PowerShell, có thể gọi trực tiếp `.venv\Scripts\python.exe` mà không cần kích hoạt môi trường.
 
-`requirements.txt` hiện không cài thêm thư viện. Khi nhóm bắt đầu code AI, thống nhất phiên bản Python/TensorFlow và điền các thư viện cần thiết. Sau đó cài bằng `.venv\Scripts\python.exe -m pip install -r requirements.txt`. Chỉ ghi phiên bản đã chạy được; gói ZIP chưa kiểm chứng môi trường huấn luyện AI.
+Phần TV1 đã được kiểm chứng với Python 3.10.12, TensorFlow CPU 2.16.1 và NumPy 1.26.4. Cài thư viện rồi chạy:
+
+```bash
+python -m pip install -r requirements.txt
+python main.py prepare
+python main.py train
+```
+
+Lệnh `prepare` tự tải UCI-HAR nếu `data/raw/UCI HAR Dataset` chưa tồn tại. Lệnh `train` dùng cấu hình trong `configs/project.json` và lưu checkpoint tốt nhất theo validation accuracy.
 
 ## Phạm vi nghiên cứu
 
@@ -51,7 +59,23 @@ Tạo môi trường riêng bằng `python -m venv .venv`. Trên Windows PowerSh
 - Một baseline FP32; INT8 PTQ; calibration 50/200/500 cửa sổ là cấu hình khảo sát đề xuất.
 - Giữ nguyên checkpoint giữa các cấu hình calibration. Calibration lấy từ train; chọn cấu hình bằng validation; test dùng cuối cùng.
 - So sánh accuracy, macro-F1, dung lượng file. Không suy ra RAM/Flash, năng lượng hoặc tốc độ MCU từ laptop.
-- Kiến trúc và đầu vào còn chờ đối chiếu paper. Nếu thay kiến trúc, ghi rõ là áp dụng phương pháp trên mô hình điều chỉnh.
+- Baseline dùng ResNetv1-6 ở Hình 4 của paper, điều chỉnh Conv/Pool thành 1D cho tensor UCI-HAR `(128, 9)`, chọn 32 filters.
+- Huấn luyện bám mục 6.1.1: SGD, batch 64, 300 epoch, learning rate 0,05, momentum 0,9, weight decay `5e-4`, giảm learning rate ×0,13 tại epoch 100/200/250 và Mixup.
+- Khác paper: nhóm tách validation theo subject, dùng Mixup alpha 0,2 do paper không công bố alpha và khảo sát TFLite PTQ INT8 thay vì gọi đây là tái hiện nguyên bản MicroAI QAT.
+
+## Kết quả TV1 đã đo
+
+| Chỉ số | Kết quả |
+| --- | ---: |
+| Validation accuracy | 95,82% |
+| Validation macro-F1 | 0,9621 |
+| Test accuracy | 92,60% |
+| Test macro-F1 | 0,9271 |
+| Số tham số | 10.726 |
+| Checkpoint `.keras` | 148.495 byte |
+| Epoch được chọn | 84/300 |
+
+Xem mô tả và giới hạn tại [docs/data_and_baseline.md](docs/data_and_baseline.md).
 
 ## Thư mục
 

@@ -1,0 +1,81 @@
+{
+  "checkpoint_id": "aa323b3e55d1f904edbb05fb6d2a817b748b6e0ad26b7eb0166777c94535c74e",
+  "checkpoint_file": "models/baseline.keras",
+  "seed": 42,
+  "architecture": {
+    "architecture": "ResNetv1-6_1D_adapted_from_Figure_4",
+    "filters": 32,
+    "confirmed_against_paper": true,
+    "paper_reference": "Novac et al. 2021, Figure 4 and Section 6.1.1"
+  },
+  "input_shape": [
+    128,
+    9
+  ],
+  "channel_order": [
+    "total_acc_x",
+    "total_acc_y",
+    "total_acc_z",
+    "body_gyro_x",
+    "body_gyro_y",
+    "body_gyro_z",
+    "body_acc_x",
+    "body_acc_y",
+    "body_acc_z"
+  ],
+  "labels": [
+    "WALKING",
+    "WALKING_UPSTAIRS",
+    "WALKING_DOWNSTAIRS",
+    "SITTING",
+    "STANDING",
+    "LAYING"
+  ],
+  "training": {
+    "epochs": 300,
+    "batch_size": 64,
+    "learning_rate": 0.05,
+    "momentum": 0.9,
+    "weight_decay": 0.0005,
+    "lr_decay_factor": 0.13,
+    "lr_milestones": [
+      100,
+      200,
+      250
+    ],
+    "mixup_alpha": 0.2,
+    "checkpoint_monitor": "val_accuracy"
+  },
+  "selection_split": "validation",
+  "metrics": {
+    "validation_accuracy": 0.9582491582491582,
+    "validation_macro_f1": 0.9620628400630012,
+    "test_accuracy": 0.9260264675941635,
+    "test_macro_f1": 0.9270975159995051,
+    "best_epoch": 84,
+    "epochs_ran": 300,
+    "parameter_count": 10726,
+    "keras_model_size_bytes": 148495
+  },
+  "environment": {
+    "python": "3.10.12",
+    "tensorflow": "2.16.1",
+    "numpy": "1.26.4"
+  },
+  "paper_alignment": {
+    "source": "https://doi.org/10.3390/s21092984",
+    "matched": [
+      "ResNetv1-6 Figure 4 adapted to Conv1D/MaxPool1D",
+      "z-score using model-training data",
+      "SGD, batch 64, 300 epochs, lr 0.05, momentum 0.9",
+      "weight decay 5e-4 and lr factor 0.13 at epochs 100/200/250",
+      "Mixup training"
+    ],
+    "project_changes": [
+      "32 filters selected from paper sweep",
+      "subject-disjoint validation split for checkpoint selection",
+      "Mixup alpha 0.2 because the paper does not report alpha",
+      "project studies TFLite PTQ INT8 rather than reproducing MicroAI QAT"
+    ]
+  }
+}
