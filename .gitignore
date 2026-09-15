@@ -15,7 +15,12 @@ Thumbs.db
 !/data/raw/README.md
 /data/processed/*
 !/data/processed/README.md
+!/data/processed/preprocess.json
+!/data/processed/split.json
+!/data/processed/sanity_samples.npz
 /models/*
 !/models/README.md
+!/models/baseline.keras
+!/models/baseline_metadata.json
 /results/tmp/
 *.zip

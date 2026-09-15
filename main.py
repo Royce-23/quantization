@@ -5,8 +5,9 @@ import sys
 from src.common import ROOT, load_config
 
 STAGES = {
-    "prepare": "prepare_data", "train": "train", "quantize": "quantize",
-    "evaluate": "evaluate", "summarize": "summarize_results", "plot": "plot_results",
+    "prepare": "prepare_data", "train": "train", "visualize-tv1": "visualize_tv1",
+    "quantize": "quantize", "evaluate": "evaluate",
+    "summarize": "summarize_results", "plot": "plot_results",
 }
 
 
@@ -30,7 +31,7 @@ def main():
                 if not (ROOT / folder).is_dir():
                     raise ValueError(f"Thiếu thư mục: {folder}")
             print("OK: cấu hình, thư mục và giao diện module của bộ khung hợp lệ.")
-            print("Chưa kiểm chứng model, dữ liệu hoặc thư viện AI. Các module vẫn có TODO.")
+            print("TV1 đã triển khai dữ liệu/baseline; TV2 và TV3 vẫn còn TODO.")
             return 0
         module = importlib.import_module(f"src.{STAGES[args.stage]}")
         module.run(config)

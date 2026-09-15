@@ -1,0 +1,12 @@
+{
+  "source_label_base": 1,
+  "model_label_base": 0,
+  "labels": {
+    "0": "WALKING",
+    "1": "WALKING_UPSTAIRS",
+    "2": "WALKING_DOWNSTAIRS",
+    "3": "SITTING",
+    "4": "STANDING",
+    "5": "LAYING"
+  }
+}

@@ -9,20 +9,46 @@
   },
   "dataset": {
     "name": "UCI-HAR",
-    "input_shape": null,
-    "channel_order": [],
-    "labels": [],
+    "input_shape": [128, 9],
+    "channel_order": [
+      "total_acc_x",
+      "total_acc_y",
+      "total_acc_z",
+      "body_gyro_x",
+      "body_gyro_y",
+      "body_gyro_z",
+      "body_acc_x",
+      "body_acc_y",
+      "body_acc_z"
+    ],
+    "labels": [
+      "WALKING",
+      "WALKING_UPSTAIRS",
+      "WALKING_DOWNSTAIRS",
+      "SITTING",
+      "STANDING",
+      "LAYING"
+    ],
+    "validation_subjects": [27, 28, 29, 30],
     "split_policy": "official_test_subject_disjoint_validation_from_train",
     "normalization": "fit_on_train_only"
   },
   "model": {
-    "architecture": null,
-    "confirmed_against_paper": false
+    "architecture": "ResNetv1-6_1D_adapted_from_Figure_4",
+    "filters": 32,
+    "confirmed_against_paper": true,
+    "paper_reference": "Novac et al. 2021, Figure 4 and Section 6.1.1"
   },
   "training": {
-    "epochs": null,
-    "batch_size": null,
-    "learning_rate": null
+    "epochs": 300,
+    "batch_size": 64,
+    "learning_rate": 0.05,
+    "momentum": 0.9,
+    "weight_decay": 0.0005,
+    "lr_decay_factor": 0.13,
+    "lr_milestones": [100, 200, 250],
+    "mixup_alpha": 0.2,
+    "checkpoint_monitor": "val_accuracy"
   },
   "quantization": {
     "method": "PTQ_INT8",
