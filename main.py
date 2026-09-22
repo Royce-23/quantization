@@ -6,6 +6,7 @@ from src.common import ROOT, load_config
 
 STAGES = {
     "prepare": "prepare_data", "train": "train", "visualize-tv1": "visualize_tv1",
+    "visualize-pipeline": "visualize_pipeline",
     "quantize": "quantize", "evaluate": "evaluate",
     "summarize": "summarize_results", "plot": "plot_results",
     "export-c": "export_c",

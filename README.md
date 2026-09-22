@@ -33,6 +33,7 @@ python main.py --help
 python main.py prepare
 python main.py train
 python main.py visualize-tv1
+python main.py visualize-pipeline
 python main.py quantize
 python main.py evaluate
 python main.py summarize
@@ -78,6 +79,9 @@ python main.py plot
 để chọn calibration size rồi mới đánh giá test, tránh dùng test để chọn cấu
 hình. Xem [phương pháp lượng tử hóa](docs/quantization.md) và
 [kết quả–thảo luận](docs/results_and_discussion.md).
+
+`visualize-pipeline` tạo sơ đồ trình bày thuật toán và toàn bộ luồng xử lý tại
+`results/figures/pipeline/algorithm_flow.png` (kèm bản SVG để phóng to).
 
 ## Phạm vi nghiên cứu
 

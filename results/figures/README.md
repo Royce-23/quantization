@@ -12,5 +12,7 @@ Chạy `python main.py plot` để tạo `quantization/`:
 - accuracy và macro-F1 theo calibration size (mean ± SD qua ba seed);
 - dung lượng file FP32/INT8;
 - ma trận nhầm lẫn test của FP32 và model INT8 đại diện đã chọn.
+- `pipeline/algorithm_flow.png`: sơ đồ trình bày dữ liệu, baseline, PTQ INT8,
+  đánh giá và forward pass ResNet 1D.
 
 Mọi hình đều đọc từ CSV thực nghiệm, không hard-code số liệu trong mã vẽ.
