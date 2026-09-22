@@ -8,6 +8,7 @@ STAGES = {
     "prepare": "prepare_data", "train": "train", "visualize-tv1": "visualize_tv1",
     "quantize": "quantize", "evaluate": "evaluate",
     "summarize": "summarize_results", "plot": "plot_results",
+    "export-c": "export_c",
 }
 
 
@@ -31,7 +32,7 @@ def main():
                 if not (ROOT / folder).is_dir():
                     raise ValueError(f"Thiếu thư mục: {folder}")
             print("OK: cấu hình, thư mục và giao diện module của bộ khung hợp lệ.")
-            print("TV1 đã triển khai dữ liệu/baseline; TV2 và TV3 vẫn còn TODO.")
+            print("TV1, TV2 và TV3 đã được triển khai; chạy từng stage để kiểm tra artifact.")
             return 0
         module = importlib.import_module(f"src.{STAGES[args.stage]}")
         module.run(config)

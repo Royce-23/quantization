@@ -2,7 +2,9 @@
 
 Khảo sát ảnh hưởng của PTQ INT8 đến độ chính xác và dung lượng mô hình nhận diện hoạt động từ cảm biến UCI-HAR.
 
-Phần TV1 (dữ liệu và baseline FP32) đã được triển khai, chạy đủ 300 epoch và bàn giao checkpoint. Phần TV2–TV3 vẫn giữ trạng thái `CHƯA TRIỂN KHAI` cho đến khi thành viên phụ trách hoàn thiện.
+Toàn bộ ba phần đã được triển khai: dữ liệu/baseline FP32, PTQ full-integer
+INT8 với khảo sát calibration và đánh giá–biểu đồ. Baseline đã chạy đủ 300
+epoch; các kết quả lượng tử hóa trong repository là số đo từ model thật.
 
 ## Bắt đầu ngay trong VS Code
 
@@ -10,7 +12,7 @@ Phần TV1 (dữ liệu và baseline FP32) đã được triển khai, chạy đ
 2. Mở Terminal tại thư mục có README này.
 3. Chạy `python main.py --check`. Windows có thể dùng `py main.py --check` nếu lệnh python không có.
 4. Đọc [phân công](PHAN_CONG_CONG_VIEC.md), điền tên thành viên và deadline.
-5. Đọc [giao diện bàn giao](docs/CONTRACT.md), sau đó mở file được giao và tìm `TODO`.
+5. Đọc [giao diện bàn giao](docs/CONTRACT.md) và tài liệu của từng giai đoạn.
 6. Xem [hướng dẫn GitHub](docs/GITHUB_GUIDE.md) để đẩy toàn bộ mã nguồn đã giải nén lên repository.
 
 ## Ai viết phần nào?
@@ -35,9 +37,18 @@ python main.py quantize
 python main.py evaluate
 python main.py summarize
 python main.py plot
+python main.py export-c
 ```
 
-`prepare` và `train` đã chạy được. Các lệnh `quantize`, `evaluate`, `summarize`, `plot` hiện vẫn dẫn tới module TODO và thoát mã 2. Mỗi thành viên giữ hàm `run(config)` để main gọi được sau khi hoàn thiện.
+Tất cả các lệnh trên đã chạy được. Thứ tự tái lập thí nghiệm sau khi có
+baseline là `quantize` → `evaluate` → `summarize` → `plot`.
+
+`export-c` đọc `models/baseline.keras` và sinh tham số dùng trực tiếp trong
+C (`firmware/include/har_resnet_params.h`, `firmware/src/har_resnet_params.c`,
+golden vector kèm theo) cộng `models/params_fp32.npz` +
+`models/params_manifest.json`. Xem
+[hướng dẫn build/chạy C](firmware/README.md) và
+[tài liệu kiến trúc + thuật toán](docs/model_architecture_and_c_inference.md).
 
 ## Môi trường nghiên cứu
 
@@ -53,6 +64,20 @@ python main.py train
 
 Lệnh `prepare` tự tải UCI-HAR nếu `data/raw/UCI HAR Dataset` chưa tồn tại. Lệnh `train` dùng cấu hình trong `configs/project.json` và lưu checkpoint tốt nhất theo validation accuracy.
 Lệnh `visualize-tv1` tạo bốn hình PNG trong `results/figures/tv1/` để kiểm tra dữ liệu, lịch sử huấn luyện, kiến trúc và ma trận nhầm lẫn.
+
+Để tái lập phần lượng tử hóa và đánh giá:
+
+```bash
+python main.py quantize
+python main.py evaluate
+python main.py summarize
+python main.py plot
+```
+
+`quantize` chỉ lấy representative data từ train. `evaluate` dùng validation
+để chọn calibration size rồi mới đánh giá test, tránh dùng test để chọn cấu
+hình. Xem [phương pháp lượng tử hóa](docs/quantization.md) và
+[kết quả–thảo luận](docs/results_and_discussion.md).
 
 ## Phạm vi nghiên cứu
 
@@ -79,6 +104,14 @@ Lệnh `visualize-tv1` tạo bốn hình PNG trong `results/figures/tv1/` để 
 
 Xem mô tả và giới hạn tại [docs/data_and_baseline.md](docs/data_and_baseline.md).
 
+## Kết quả PTQ INT8 đã đo
+
+Calibration size `500` được chọn theo mean validation accuracy qua ba seed.
+Trên test, FP32 TFLite đạt `92,6026%`; INT8 đạt trung bình
+`92,1841 ± 0,2722%`. File giảm từ `51.728` xuống `25.104` byte
+(`51,47%`, tương đương `2,06×`). Xem bảng sinh tự động tại
+[results/summary.md](results/summary.md).
+
 ## Thư mục
 
 | Thư mục | Mục đích |
@@ -89,6 +122,7 @@ Xem mô tả và giới hạn tại [docs/data_and_baseline.md](docs/data_and_ba
 | `data/raw/`, `data/processed/` | Dữ liệu cục bộ, không commit dữ liệu lớn |
 | `models/` | Checkpoint và model xuất, không commit model lớn |
 | `results/` | CSV, biểu đồ đã kiểm tra |
+| `firmware/` | Suy luận C99 thuần từ baseline FP32 (`python main.py export-c` + `make test`) |
 | `.github/` | Mẫu Issue, PR và CI kiểm tra bộ khung |
 
 Xem [mốc tiến độ](docs/MILESTONES.md). CI chỉ kiểm tra cú pháp và cấu hình bộ khung, không xác nhận chất lượng nghiên cứu.

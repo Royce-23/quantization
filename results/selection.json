@@ -1,0 +1,8 @@
+{
+  "checkpoint_id": "aa323b3e55d1f904edbb05fb6d2a817b748b6e0ad26b7eb0166777c94535c74e",
+  "policy": "compare calibration sizes by mean validation accuracy across seeds; evaluate only the selected size on test",
+  "selected_calibration_size": 500,
+  "representative_model_file": "models/int8_n500_s22.tflite",
+  "representative_calibration_seed": 22,
+  "note": "Test was evaluated only after selecting size from validation results."
+}

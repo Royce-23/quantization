@@ -13,7 +13,7 @@
 - `models/baseline_metadata.json`: checkpoint_id (hash), seed, cấu hình kiến trúc/train, phiên bản thư viện, đường dẫn metadata dữ liệu.
 - `data/processed/sanity_samples.npz`: vài cửa sổ, nhãn và output baseline để đối chiếu.
 
-Chuẩn hóa chỉ fit trên train. Không chuẩn hóa thêm trong quantize/evaluate. Các file trên là đầu ra tương lai, chưa được tạo trong starter.
+Chuẩn hóa chỉ fit trên train. Không chuẩn hóa thêm trong quantize/evaluate. Các artifact trên đã được TV1 tạo và kiểm tra.
 
 ## TV2 → TV3
 

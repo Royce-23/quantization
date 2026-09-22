@@ -71,16 +71,16 @@
 
 ### Checklist
 
-- [ ] Đọc và giải thích FP32, INT8, scale, zero-point, PTQ và calibration.
-- [ ] Nhận mô hình thử và quy ước đầu vào từ TV1.
-- [ ] Viết hàm lấy calibration từ train, không dùng validation/test.
-- [ ] Xuất mô hình FP32 và INT8 để đánh giá bằng cùng họ runtime.
-- [ ] Kiểm tra kiểu dữ liệu đầu vào/đầu ra, scale, zero-point và toán tử còn float nếu có.
-- [ ] Thử dự đoán; kiểm tra chuyển đổi số nguyên và tránh chuẩn hóa hai lần.
-- [ ] Chạy các mức calibration 50, 200, 500 cửa sổ trên cùng checkpoint.
-- [ ] Nếu nguồn lực cho phép, lặp ba seed lấy mẫu cho mỗi mức.
-- [ ] Lưu cấu hình, seed, tên mô hình và log từng lần chạy.
-- [ ] Viết phần báo cáo: phương pháp và thực nghiệm lượng tử hóa.
+- [x] Đọc và giải thích FP32, INT8, scale, zero-point, PTQ và calibration.
+- [x] Nhận mô hình thử và quy ước đầu vào từ TV1.
+- [x] Viết hàm lấy calibration từ train, không dùng validation/test.
+- [x] Xuất mô hình FP32 và INT8 để đánh giá bằng cùng họ runtime.
+- [x] Kiểm tra kiểu dữ liệu đầu vào/đầu ra, scale, zero-point và toán tử còn float nếu có.
+- [x] Thử dự đoán; kiểm tra chuyển đổi số nguyên và tránh chuẩn hóa hai lần.
+- [x] Chạy các mức calibration 50, 200, 500 cửa sổ trên cùng checkpoint.
+- [x] Lặp ba seed lấy mẫu cho mỗi mức.
+- [x] Lưu cấu hình, seed, tên mô hình và log từng lần chạy.
+- [x] Viết phần báo cáo: phương pháp và thực nghiệm lượng tử hóa.
 
 ### File phụ trách dự kiến
 
@@ -88,7 +88,7 @@
 | --- | --- |
 | `src/calibration.py` | Chọn dữ liệu đại diện |
 | `src/quantize.py` | Xuất FP32 và INT8 |
-| `configs/experiments.json` | Cấu hình và seed thí nghiệm |
+| `configs/project.json` | Cấu hình và seed thí nghiệm |
 | `docs/quantization.md` | Giải thích và ghi chép phương pháp |
 
 **Bàn giao:** mô hình FP32 xuất, các mô hình INT8, thông tin đầu vào/đầu ra và bảng ánh xạ mô hình–cấu hình.
@@ -99,16 +99,16 @@
 
 ### Checklist
 
-- [ ] Thống nhất cách tính accuracy, macro-F1 và dung lượng file.
-- [ ] Viết bộ đánh giá FP32/INT8; kiểm tra đúng nhãn và xử lý đầu vào INT8.
-- [ ] Tính ma trận nhầm lẫn và kiểm tra nhãn trục biểu đồ.
-- [ ] Đo dung lượng file thực tế, dùng KiB = byte / 1024.
-- [ ] Đánh giá trên validation để hỗ trợ chọn cấu hình.
-- [ ] Sau khi chốt, đánh giá cuối trên test bằng cùng danh sách mẫu.
-- [ ] Tổng hợp trung bình và độ lệch chuẩn nếu có nhiều seed.
-- [ ] Vẽ biểu đồ accuracy theo số mẫu calibration và dung lượng FP32–INT8.
-- [ ] Đối chiếu phần kết quả tương ứng trong paper; ghi rõ khác biệt cấu hình.
-- [ ] Viết kết quả, thảo luận và giới hạn; ghép báo cáo với hai thành viên còn lại.
+- [x] Thống nhất cách tính accuracy, macro-F1 và dung lượng file.
+- [x] Viết bộ đánh giá FP32/INT8; kiểm tra đúng nhãn và xử lý đầu vào INT8.
+- [x] Tính ma trận nhầm lẫn và kiểm tra nhãn trục biểu đồ.
+- [x] Đo dung lượng file thực tế, dùng KiB = byte / 1024.
+- [x] Đánh giá trên validation để hỗ trợ chọn cấu hình.
+- [x] Sau khi chốt, đánh giá cuối trên test bằng cùng danh sách mẫu.
+- [x] Tổng hợp trung bình và độ lệch chuẩn qua ba seed.
+- [x] Vẽ biểu đồ accuracy theo số mẫu calibration và dung lượng FP32–INT8.
+- [x] Đối chiếu phần kết quả tương ứng trong paper; ghi rõ khác biệt cấu hình.
+- [x] Viết kết quả, thảo luận và giới hạn; ghép báo cáo với hai thành viên còn lại.
 
 ### File phụ trách dự kiến
 
@@ -134,11 +134,11 @@
 | 4. Exploration | Kiểm tra dữ liệu | Thí nghiệm calibration | Tổng hợp và biểu đồ | Điền ngày |
 | 5. Research | Phân tích dữ liệu | Phân tích lượng tử | Thảo luận và giới hạn | Điền ngày |
 
-- [ ] Phase 1: đọc lướt các paper đã tìm, đọc kỹ một bài, chốt phần thực nghiệm và đầu vào chung.
-- [ ] Phase 2: FP32 và INT8 chạy được qua cùng quy trình đánh giá.
-- [ ] Phase 3: có bảng và biểu đồ baseline đã được nhóm kiểm tra.
-- [ ] Phase 4: hoàn thành khảo sát kích thước calibration.
-- [ ] Phase 5: hoàn thiện báo cáo, slide và buổi chạy demo trên laptop.
+- [x] Phase 1: đọc paper chính, chốt phần thực nghiệm và đầu vào chung.
+- [x] Phase 2: FP32 và INT8 chạy được qua cùng quy trình đánh giá.
+- [x] Phase 3: có bảng và biểu đồ baseline đã được kiểm tra bằng test tự động.
+- [x] Phase 4: hoàn thành khảo sát kích thước calibration.
+- [x] Phase 5: hoàn thiện nội dung báo cáo và lệnh demo trên laptop; slide do nhóm trình bày.
 
 Phase 5 tập trung giải thích kết quả và đề xuất hướng tiếp tục. Chưa khẳng định đóng góp mới nếu chưa kiểm tra nghiên cứu liên quan.
 
@@ -157,10 +157,10 @@ Phase 5 tập trung giải thích kết quả và đề xuất hướng tiếp t
 
 | Cấu hình | Calibration | Accuracy (%) | Macro-F1 (0–1) | Dung lượng (KiB) |
 | --- | ---: | ---: | ---: | ---: |
-| FP32 | Không áp dụng | Chưa đo | Chưa đo | Chưa đo |
-| INT8-A | 50 | Chưa đo | Chưa đo | Chưa đo |
-| INT8-B | 200 | Chưa đo | Chưa đo | Chưa đo |
-| INT8-C | 500 | Chưa đo | Chưa đo | Chưa đo |
+| FP32 | Không áp dụng | 95,8249 (validation) | 0,962063 | 50,52 |
+| INT8-A | 50 | 95,6678 ± 0,1695 (validation) | 0,960656 ± 0,001528 | 24,52 |
+| INT8-B | 200 | 95,7127 ± 0,1029 (validation) | 0,961052 ± 0,000940 | 24,52 |
+| INT8-C | 500 | 95,7576 ± 0,1782 (validation) | 0,961448 ± 0,001619 | 24,52 |
 
 Trong `metrics.csv`, nên lưu: `experiment_id`, `checkpoint_id`, `model_file`, `split`, `calibration_size`, `calibration_seed`, `accuracy_pct`, `macro_f1`, `model_size_bytes`. Mỗi cấu hình/seed là một dòng; bảng tổng hợp được tạo từ dữ liệu này.
 
@@ -198,6 +198,7 @@ Trong `metrics.csv`, nên lưu: `experiment_id`, `checkpoint_id`, `model_file`, 
 | TASK-07 | Chạy khảo sát calibration | TV2 | TASK-06 |
 | TASK-08 | Tổng hợp kết quả và biểu đồ | TV3 | TASK-07 |
 | TASK-09 | Hoàn thiện báo cáo và demo | Cả nhóm | TASK-08 |
+| TASK-10 | Trích xuất tham số và suy luận (inference) bằng C từ baseline FP32 | TV1 (hoặc người được phân công) | TASK-03 |
 
 ### Mẫu nội dung Issue
 
@@ -237,17 +238,18 @@ Các đường dẫn dưới đây là cấu trúc dự kiến, chưa có code t
 | `docs/` | Ghi chú paper và nội dung báo cáo | Cả nhóm |
 | `results/` | CSV và biểu đồ cuối | TV3 |
 | `data/`, `models/` | Dữ liệu và mô hình cục bộ | TV1 + TV2 |
+| `firmware/` | Suy luận C99 (TASK-10): tham số sinh tự động + thuật toán viết tay | TV1 (hoặc người được phân công) |
 
 Không commit dữ liệu lớn, môi trường Python, cache hoặc checkpoint tạm. Ghi cách tải dữ liệu và vị trí bàn giao mô hình trong README; commit code, cấu hình, bảng số liệu nhỏ và tài liệu cần thiết. Các tên file dùng chung chỉ đổi sau khi báo hai thành viên còn lại.
 
 ## 10. Checklist nộp bài
 
-- [ ] Một baseline FP32 với cấu hình rõ ràng.
-- [ ] Quy trình PTQ INT8 chạy lại được.
-- [ ] Một khảo sát calibration có kiểm soát.
-- [ ] Bảng accuracy, macro-F1 và dung lượng từ kết quả thật.
-- [ ] Biểu đồ có tên trục, đơn vị và chú thích.
-- [ ] Báo cáo nêu phần tái hiện, phần thay đổi và giới hạn.
-- [ ] README ghi môi trường, dữ liệu và thứ tự chạy.
-- [ ] Cả ba hiểu luồng dữ liệu → FP32 → INT8 → đánh giá.
+- [x] Một baseline FP32 với cấu hình rõ ràng.
+- [x] Quy trình PTQ INT8 chạy lại được.
+- [x] Một khảo sát calibration có kiểm soát.
+- [x] Bảng accuracy, macro-F1 và dung lượng từ kết quả thật.
+- [x] Biểu đồ có tên trục, đơn vị và chú thích.
+- [x] Báo cáo nêu phần tái hiện, phần thay đổi và giới hạn.
+- [x] README ghi môi trường, dữ liệu và thứ tự chạy.
+- [ ] Cả ba hiểu luồng dữ liệu → FP32 → INT8 → đánh giá (nhóm tự xác nhận).
 - [ ] Mỗi người trình bày phần mình phụ trách; demo hoàn toàn trên laptop.

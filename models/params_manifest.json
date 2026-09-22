@@ -1,0 +1,133 @@
+{
+  "checkpoint_id": "aa323b3e55d1f904edbb05fb6d2a817b748b6e0ad26b7eb0166777c94535c74e",
+  "checkpoint_file": "models/baseline.keras",
+  "architecture": "ResNetv1-6_1D_adapted_from_Figure_4",
+  "parameter_count": 10726,
+  "layers": [
+    {
+      "name": "block1_conv1",
+      "kernel_shape": [
+        3,
+        9,
+        32
+      ],
+      "bias_shape": [
+        32
+      ],
+      "params": 896
+    },
+    {
+      "name": "block1_conv2",
+      "kernel_shape": [
+        3,
+        32,
+        32
+      ],
+      "bias_shape": [
+        32
+      ],
+      "params": 3104
+    },
+    {
+      "name": "block1_projection",
+      "kernel_shape": [
+        1,
+        9,
+        32
+      ],
+      "bias_shape": [
+        32
+      ],
+      "params": 320
+    },
+    {
+      "name": "block2_conv1",
+      "kernel_shape": [
+        3,
+        32,
+        32
+      ],
+      "bias_shape": [
+        32
+      ],
+      "params": 3104
+    },
+    {
+      "name": "block2_conv2",
+      "kernel_shape": [
+        3,
+        32,
+        32
+      ],
+      "bias_shape": [
+        32
+      ],
+      "params": 3104
+    },
+    {
+      "name": "activity_logits",
+      "kernel_shape": [
+        32,
+        6
+      ],
+      "bias_shape": [
+        6
+      ],
+      "params": 198
+    }
+  ],
+  "input": {
+    "shape": [
+      128,
+      9
+    ],
+    "dtype": "float32",
+    "normalization": "z_score_per_channel",
+    "channel_order": [
+      "total_acc_x",
+      "total_acc_y",
+      "total_acc_z",
+      "body_gyro_x",
+      "body_gyro_y",
+      "body_gyro_z",
+      "body_acc_x",
+      "body_acc_y",
+      "body_acc_z"
+    ]
+  },
+  "labels": [
+    "WALKING",
+    "WALKING_UPSTAIRS",
+    "WALKING_DOWNSTAIRS",
+    "SITTING",
+    "STANDING",
+    "LAYING"
+  ],
+  "generated_files": [
+    {
+      "path": "firmware/include/har_resnet_params.h",
+      "sha256": "a24805c6ec09515b144d425f1e4fa5d761548f1cf8c499003e4b20506e0dada0",
+      "bytes": 2113
+    },
+    {
+      "path": "firmware/src/har_resnet_params.c",
+      "sha256": "75aa6d044e1c3efe9551ceadfe12dadcaccadcd997dc9a7f9769b65596402585",
+      "bytes": 168839
+    },
+    {
+      "path": "firmware/include/har_golden.h",
+      "sha256": "871b27be97d60ed8d9dd7e667a22942bcd4b3a574278389e30ff4a65c850e572",
+      "bytes": 537
+    },
+    {
+      "path": "firmware/src/har_golden.c",
+      "sha256": "81904accaae525a4290643433c0649d9bec0205e902d538cf821f0102af4345e",
+      "bytes": 209743
+    }
+  ],
+  "environment": {
+    "python": "3.10.12",
+    "tensorflow": "2.16.1",
+    "numpy": "1.26.4"
+  }
+}

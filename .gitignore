@@ -22,5 +22,13 @@ Thumbs.db
 !/models/README.md
 !/models/baseline.keras
 !/models/baseline_metadata.json
+!/models/baseline_fp32.tflite
+!/models/int8_*.tflite
+!/models/model_metadata.json
+!/models/params_manifest.json
 /results/tmp/
 *.zip
+# firmware: file build cục bộ, không commit
+firmware/build/
+# Ghi chú bàn giao nội bộ, không đưa lên repository chính
+.bangiao/

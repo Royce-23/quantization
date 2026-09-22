@@ -10,10 +10,10 @@ Không ấn định số tuần khi nhóm chưa có hạn nộp. Điền ngày v
 | 4 Exploration | Calibration 50/200/500, seed lặp nếu đủ thời gian | TV2 + TV3 | Chưa điền |
 | 5 Discussion | Giải thích, giới hạn, báo cáo, demo laptop | Cả nhóm | Chưa điền |
 
-- [ ] Chốt cấu hình và schema
-- [ ] Bàn giao mô hình thử sớm
-- [ ] Chốt checkpoint FP32
-- [ ] Chuyển INT8 và kiểm tra
-- [ ] Đánh giá validation và khảo sát calibration
-- [ ] Chốt cấu hình, đánh giá test
-- [ ] Báo cáo, slide và demo
+- [x] Chốt cấu hình và schema
+- [x] Bàn giao mô hình thử sớm
+- [x] Chốt checkpoint FP32
+- [x] Chuyển INT8 và kiểm tra full-integer
+- [x] Đánh giá validation và khảo sát calibration
+- [x] Chốt cấu hình bằng validation, sau đó đánh giá test
+- [x] Tạo bảng, biểu đồ và nội dung báo cáo; slide/demo do nhóm trình bày
