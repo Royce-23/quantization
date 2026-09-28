@@ -97,6 +97,35 @@ duyệt để đổi giao diện sáng/tối, phóng to, trình chiếu hoặc x
 `quantization_har_archify_dark.png`. Nguồn sơ đồ có thể chỉnh sửa nằm tại
 `docs/diagrams/quantization_har.dataflow.json`.
 
+## Thư viện ảnh và sơ đồ
+
+Toàn bộ ảnh kết quả và sơ đồ đã được lưu trực tiếp trong repository.
+Nhấn vào từng ảnh để xem kích thước đầy đủ.
+
+### Sơ đồ pipeline và kiến trúc
+
+[![Luồng thuật toán và xử lý](results/figures/pipeline/algorithm_flow.png)](results/figures/pipeline/algorithm_flow.png)
+
+[![Sơ đồ kiến trúc chi tiết](results/figures/pipeline/quantization_har_archify.png)](results/figures/pipeline/quantization_har_archify.png)
+
+[![Sơ đồ kiến trúc nền tối](results/figures/pipeline/quantization_har_archify_dark.png)](results/figures/pipeline/quantization_har_archify_dark.png)
+
+Bản khám phá tương tác: [HTML](results/figures/pipeline/quantization_har_archify.html) ·
+[SVG](results/figures/pipeline/algorithm_flow.svg) ·
+[nguồn sơ đồ](docs/diagrams/quantization_har.dataflow.json)
+
+### Kết quả baseline FP32
+
+| Phân bố lớp | Ma trận nhầm lẫn | Kiến trúc model | Quá trình huấn luyện |
+| --- | --- | --- | --- |
+| [![Phân bố lớp](results/figures/tv1/class_distribution.png)](results/figures/tv1/class_distribution.png) | [![Ma trận nhầm lẫn FP32](results/figures/tv1/confusion_matrix_fp32.png)](results/figures/tv1/confusion_matrix_fp32.png) | [![Kiến trúc model](results/figures/tv1/model_architecture.png)](results/figures/tv1/model_architecture.png) | [![Training curves](results/figures/tv1/training_curves.png)](results/figures/tv1/training_curves.png) |
+
+### Kết quả lượng tử hóa INT8
+
+| Accuracy theo calibration | Macro-F1 theo calibration | Ma trận nhầm lẫn test | Dung lượng model |
+| --- | --- | --- | --- |
+| [![Accuracy](results/figures/quantization/accuracy_vs_calibration.png)](results/figures/quantization/accuracy_vs_calibration.png) | [![Macro-F1](results/figures/quantization/macro_f1_vs_calibration.png)](results/figures/quantization/macro_f1_vs_calibration.png) | [![Ma trận nhầm lẫn test](results/figures/quantization/confusion_matrix_test.png)](results/figures/quantization/confusion_matrix_test.png) | [![So sánh dung lượng](results/figures/quantization/model_size_comparison.png)](results/figures/quantization/model_size_comparison.png) |
+
 ## Phạm vi nghiên cứu
 
 - Dataset: [UCI-HAR](https://doi.org/10.24432/C54S4K), tự tải riêng; không kèm dữ liệu trong ZIP.
