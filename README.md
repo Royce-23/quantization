@@ -39,6 +39,7 @@ python main.py evaluate
 python main.py summarize
 python main.py plot
 python main.py export-c
+python main.py describe-params
 ```
 
 Tất cả các lệnh trên đã chạy được. Thứ tự tái lập thí nghiệm sau khi có
@@ -50,6 +51,11 @@ golden vector kèm theo) cộng `models/params_fp32.npz` +
 `models/params_manifest.json`. Xem
 [hướng dẫn build/chạy C](firmware/README.md) và
 [tài liệu kiến trúc + thuật toán](docs/model_architecture_and_c_inference.md).
+
+`describe-params` (chạy sau `export-c`) đọc `models/params_fp32.npz` và sinh
+báo cáo tham số chi tiết (vai trò, nhánh, công thức, tên biến C, thống kê
+số học từng tensor) tại
+[`results/parameters_reference.md`](results/parameters_reference.md).
 
 ## Môi trường nghiên cứu
 
@@ -82,6 +88,14 @@ hình. Xem [phương pháp lượng tử hóa](docs/quantization.md) và
 
 `visualize-pipeline` tạo sơ đồ trình bày thuật toán và toàn bộ luồng xử lý tại
 `results/figures/pipeline/algorithm_flow.png` (kèm bản SVG để phóng to).
+
+Bản sơ đồ Archify chi tiết, nhiều nhánh nằm tại
+`results/figures/pipeline/quantization_har_archify.html`. Mở tệp này bằng trình
+duyệt để đổi giao diện sáng/tối, phóng to, trình chiếu hoặc xuất PNG/SVG. Bản
+ảnh tĩnh dùng trực tiếp trong báo cáo là
+`results/figures/pipeline/quantization_har_archify.png`; bản nền tối là
+`quantization_har_archify_dark.png`. Nguồn sơ đồ có thể chỉnh sửa nằm tại
+`docs/diagrams/quantization_har.dataflow.json`.
 
 ## Phạm vi nghiên cứu
 

@@ -83,5 +83,10 @@
     "firmware_dir": "firmware",
     "values_per_line": 8,
     "float_format": "{:.9g}f"
+  },
+  "describe_params": {
+    "params_npz": "models/params_fp32.npz",
+    "manifest": "models/params_manifest.json",
+    "output": "results/parameters_reference.md"
   }
 }

@@ -18,7 +18,7 @@ from .common import ROOT, project_path
 
 # Bảng đặc tả 5 lớp Conv1D theo đúng thứ tự forward trong src/model.py.
 # kernel Keras có shape (k, cin, cout); flatten C-order giữ nguyên thứ tự này
-# -> layout C là [k][cin][cout], đúng theo mục 5.3/5.7 của kế hoạch.
+# -> layout C là [k][cin][cout], đúng theo docs/model_architecture_and_c_inference.md mục 3.1.
 CONV_LAYERS = [
     {"name": "block1_conv1", "k": 3, "cin": 9, "cout": 32},
     {"name": "block1_conv2", "k": 3, "cin": 32, "cout": 32},
@@ -55,7 +55,16 @@ def _format_value(value, float_format):
     lowered = text.lower()
     if "nan" in lowered or "inf" in lowered:
         raise ValueError(f"Giá trị không hợp lệ khi xuất sang C: {value!r} -> {text}")
-    return text
+    # Tách hậu tố 'f'/'F' của literal float C (nếu float_format có sẵn hậu tố này).
+    if text and text[-1] in "fF":
+        mantissa, suffix = text[:-1], text[-1]
+    else:
+        mantissa, suffix = text, ""
+    # "0" -> "0.0", "-3" -> "-3.0": literal C phải có dấu chấm hoặc số mũ thì hậu tố
+    # 'f' mới hợp lệ ("0f" là lỗi cú pháp, "0.0f" mới đúng). "1e-09" đã có 'e' -> giữ nguyên.
+    if not any(ch in mantissa for ch in ".eE"):
+        mantissa += ".0"
+    return mantissa + suffix
 
 
 def _format_c_array_body(flat_values, float_format, values_per_line):

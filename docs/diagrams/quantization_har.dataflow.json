@@ -1,0 +1,174 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "Quantization HAR — luồng tensor, residual và PTQ INT8",
+    "output": "results/figures/pipeline/quantization_har_archify.html",
+    "viewBox": [1080, 488],
+    "animation": "none",
+    "quality_profile": "showcase",
+    "legend": { "mode": "hidden" }
+  },
+  "stages": [
+    { "label": "Tín hiệu đầu vào" },
+    { "label": "Residual Block 1" },
+    { "label": "Residual Block 2" },
+    { "label": "FP32 → INT8" },
+    { "label": "Chọn và đánh giá" }
+  ],
+  "nodes": [
+    {
+      "id": "sensor", "type": "external", "label": "UCI-HAR",
+      "sublabel": "128×9 · 50 Hz", "tag": "cửa sổ 2,56 giây",
+      "stage": 0, "row": 0, "width": 150
+    },
+    {
+      "id": "normalize", "type": "backend", "label": "Z-score",
+      "sublabel": "(x−μtrain) / σtrain", "tag": "fit trên train",
+      "stage": 0, "row": 2, "width": 150
+    },
+    {
+      "id": "b1main", "type": "backend", "label": "Block 1 · main",
+      "sublabel": "Conv3–ReLU–Conv3–Pool", "tag": "128×9 → 64×32",
+      "stage": 1, "row": 0, "width": 170
+    },
+    {
+      "id": "b1shortcut", "type": "messagebus", "label": "Block 1 · shortcut",
+      "sublabel": "Conv1–Pool · 9→32 kênh", "tag": "projection",
+      "stage": 1, "row": 2, "width": 170
+    },
+    {
+      "id": "b1add", "type": "security", "label": "Add + ReLU",
+      "sublabel": "main + projection", "tag": "x: 64×32",
+      "stage": 2, "row": 1, "width": 160
+    },
+    {
+      "id": "b2main", "type": "backend", "label": "Block 2 · main",
+      "sublabel": "Conv3–ReLU–Conv3", "tag": "F(x): 64×32",
+      "stage": 2, "row": 0, "width": 170
+    },
+    {
+      "id": "b2identity", "type": "messagebus", "label": "Block 2 · identity",
+      "sublabel": "truyền nguyên x", "tag": "0 tham số",
+      "stage": 2, "row": 2, "width": 170
+    },
+    {
+      "id": "fp32head", "type": "frontend", "label": "FP32 classifier",
+      "sublabel": "Add–ReLU–GMP–Dense6", "tag": "argmax · 10.726 params",
+      "stage": 3, "row": 0, "width": 180
+    },
+    {
+      "id": "calibration", "type": "database", "label": "Calibration",
+      "sublabel": "50 / 200 / 500 × 3 seed", "tag": "chỉ lấy train",
+      "stage": 3, "row": 1, "width": 180
+    },
+    {
+      "id": "int8", "type": "cloud", "label": "TFLite INT8",
+      "sublabel": "scale + zero-point", "tag": "full-integer · 0 float",
+      "stage": 3, "row": 2, "width": 180
+    },
+    {
+      "id": "validation", "type": "security", "label": "Validation",
+      "sublabel": "9 INT8 → chọn n=500", "tag": "test chưa được mở",
+      "stage": 4, "row": 1, "width": 180
+    },
+    {
+      "id": "test", "type": "external", "label": "Test & report",
+      "sublabel": "accuracy · F1 · bytes · CM", "tag": "92,60% → 92,18%",
+      "stage": 4, "row": 2, "width": 180
+    }
+  ],
+  "flows": [
+    {
+      "id": "raw-window", "from": "sensor", "to": "normalize",
+      "label": "tensor 128×9", "classification": "float32 · raw sensor window", "variant": "default",
+      "labelAt": [80, 312]
+    },
+    {
+      "id": "normalized-main", "from": "normalize", "to": "b1main",
+      "label": "tín hiệu chuẩn hóa", "classification": "main path", "variant": "emphasis"
+    },
+    {
+      "id": "normalized-shortcut", "from": "normalize", "to": "b1shortcut",
+      "label": "shortcut", "classification": "input gốc của block", "variant": "dashed", "route": "straight",
+      "labelAt": [315, 430]
+    },
+    {
+      "id": "b1-features", "from": "b1main", "to": "b1add",
+      "label": "đặc trưng mới", "classification": "F₁(x)", "variant": "emphasis"
+    },
+    {
+      "id": "b1-preserved", "from": "b1shortcut", "to": "b1add",
+      "label": "thông tin giữ lại", "classification": "projection", "variant": "dashed"
+    },
+    {
+      "id": "b2-main-input", "from": "b1add", "to": "b2main",
+      "label": "x", "classification": "main path", "variant": "emphasis",
+      "labelAt": [350, 224]
+    },
+    {
+      "id": "b2-identity-input", "from": "b1add", "to": "b2identity",
+      "label": "identity = x", "classification": "shortcut", "variant": "dashed",
+      "labelAt": [540, 328]
+    },
+    {
+      "id": "b2-features", "from": "b2main", "to": "fp32head",
+      "label": "F₂(x)", "classification": "learned features", "variant": "emphasis", "route": "straight",
+      "labelAt": [635, 110]
+    },
+    {
+      "id": "b2-preserved", "from": "b2identity", "to": "fp32head",
+      "label": "x", "classification": "identity", "variant": "dashed",
+      "labelAt": [620, 335]
+    },
+    {
+      "id": "checkpoint-calibration", "from": "fp32head", "to": "calibration",
+      "label": "checkpoint FP32", "classification": "một checkpoint cố định", "variant": "security",
+      "labelAt": [745, 214]
+    },
+    {
+      "id": "calibrated-model", "from": "calibration", "to": "int8",
+      "label": "scale + zero-point", "classification": "affine quantization", "variant": "security",
+      "labelAt": [745, 328]
+    },
+    {
+      "id": "fp32-baseline", "from": "fp32head", "to": "validation",
+      "label": "baseline FP32", "classification": "reference", "variant": "dashed"
+    },
+    {
+      "id": "int8-candidates", "from": "int8", "to": "validation",
+      "label": "9 model INT8", "classification": "candidates", "variant": "emphasis"
+    },
+    {
+      "id": "selected-test", "from": "validation", "to": "test",
+      "label": "n=500 · 3 seed", "classification": "selected before test", "variant": "emphasis",
+      "labelAt": [960, 328]
+    }
+  ],
+  "cards": [
+    {
+      "dot": "violet", "title": "Hai nhánh residual",
+      "items": [
+        "Block 1 dùng projection vì shape đổi từ 128×9 thành 64×32",
+        "Block 2 dùng identity vì giữ nguyên shape 64×32",
+        "Add kết hợp đặc trưng mới F(x) với thông tin đầu vào x"
+      ]
+    },
+    {
+      "dot": "amber", "title": "PTQ được kiểm soát",
+      "items": [
+        "Calibration chỉ dùng train đã chuẩn hóa; không dùng validation/test",
+        "Cùng một checkpoint FP32 sinh cả 9 model INT8",
+        "Full-integer được xác nhận: input/output int8 và không có tensor float"
+      ]
+    },
+    {
+      "dot": "emerald", "title": "Đánh đổi đo được",
+      "items": [
+        "Accuracy test giảm 0,4185 điểm phần trăm",
+        "Dung lượng giảm 51,47%: 51.728 byte xuống 25.104 byte",
+        "Lỗi chính vẫn là nhầm SITTING với STANDING"
+      ]
+    }
+  ]
+}

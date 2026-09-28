@@ -57,6 +57,32 @@ Kết quả thực đo khi triển khai: 12/12 argmax khớp, `max_abs_diff` tr�
 logits ≈ 1e-6 (ngưỡng chấp nhận 1e-3), build 0 warning. Chi tiết ở mục 5
 của tài liệu kiến trúc.
 
+## Cấu trúc hàm theo khối kiến trúc
+
+`har_resnet.c` tách thuật toán thành đúng 3 khối kiến trúc thật của model
+(không có stem conv — input đi thẳng vào Block 1), mỗi khối một hàm công
+khai riêng, khai báo trong `har_resnet.h`:
+
+- `har_block1_forward()` — residual block projection shortcut, hạ mẫu thời
+  gian 128 → 64 (nhánh A: Conv→ReLU→Conv→MaxPool/2; nhánh B: Conv k=1→MaxPool/2).
+- `har_block2_forward()` — residual block identity shortcut, giữ nguyên
+  (64, 32) (nhánh A: Conv→ReLU→Conv; nhánh B: identity, không phép toán).
+- `har_head_forward()` — GlobalMaxPooling1D + Dense(32→6), không softmax.
+
+`har_resnet_predict()` chỉ còn 3 lời gọi liên tiếp của 3 hàm trên, dùng lại
+đúng 5 buffer `static` ở mục "Layout bộ nhớ" bên dưới (không đổi `.bss`).
+Mỗi hàm khối có block comment 5 mục (NGUỒN INPUT / CẤU TRÚC / CÔNG THỨC /
+SHAPE / THAM SỐ) đối chiếu trực tiếp với sơ đồ nhánh và công thức toán ở
+[`docs/model_architecture_and_c_inference.md`](../docs/model_architecture_and_c_inference.md)
+(mục 1.2 và mục 2). Xem thêm 4 hàm nội bộ `static` theo nhánh/hợp nhánh
+(`har_block1_branch_main`, `har_block1_branch_shortcut`,
+`har_block2_branch_main`, `har_residual_merge_relu`) trong `har_resnet.c`.
+
+CẢNH BÁO: **Không thread-safe**: 5 buffer `static` dùng chung nên chỉ được có tối
+đa MỘT lời gọi `har_resnet_predict` đang chạy tại một thời điểm; không gọi
+từ nhiều task/thread hoặc ISR cùng lúc. Xem cảnh báo đầy đủ trong
+`firmware/include/har_resnet.h`.
+
 ## Layout bộ nhớ (RAM tĩnh)
 
 ```c
@@ -67,11 +93,32 @@ static float buf_d[64 * 32];    /*  8 KB */
 static float buf_e[64 * 32];    /*  8 KB */
 ```
 
-Tổng buffer trung gian ≈ 56 KB (đo bằng `size build/test_inference`:
-`.bss ≈ 57 376` byte), cộng input 128×9 float (~4,5 KB) và vài biến cục bộ
-nhỏ → tổng RAM hoạt động ≈ 62 KB. Bảng trọng số 10 726 tham số (≈ 41,9 KB)
-nằm trong mảng `const float`, thuộc `.rodata` — trên ESP32 sẽ nằm ở **flash**,
+Tổng buffer trung gian của **thư viện** ≈ 56 KB. Đo đúng con số này bằng
+cách biên dịch `har_resnet.c` thành object file RIÊNG (không lẫn buffer của
+test), vì đây là con số phản ánh đúng RAM mà firmware ESP32 thật (không
+link `test/`) sẽ dùng:
+
+```bash
+cd firmware && cc -std=c99 -O2 -Wall -Wextra -Wpedantic -Iinclude \
+  -c src/har_resnet.c -o /tmp/har_resnet_lib.o
+size /tmp/har_resnet_lib.o
+# .bss = 57 344 byte
+```
+
+Cộng thêm input 128×9 float (~4,5 KB) và vài biến cục bộ nhỏ → tổng RAM
+hoạt động ước lượng ≈ 62 KB. Bảng trọng số 10 726 tham số (≈ 41,9 KB) nằm
+trong mảng `const float`, thuộc `.rodata` — trên ESP32 sẽ nằm ở **flash**,
 không tốn DRAM. ESP32 có ~320 KB DRAM nội bộ nên đáp ứng thoải mái.
+
+**Lưu ý:** `size build/test_inference` (binary test đầy đủ, sau `make`) cho
+ra `.bss = 114 720` byte, KHÔNG phải 57 344 — vì `test/test_inference.c`
+cấp thêm 5 buffer `static` RIÊNG (57 344 byte, cộng dồn với 57 344 byte của
+thư viện) để chạy `check_block_decomposition()` độc lập với buffer nội bộ
+của `har_resnet.c`. Đây là chi phí RAM của RIÊNG chương trình test trên PC,
+không phải chi phí RAM của thư viện suy luận khi tích hợp vào firmware
+ESP32 thật (không biên dịch cùng `test/`). Xem giải thích đầy đủ tại
+[`docs/model_architecture_and_c_inference.md`](../docs/model_architecture_and_c_inference.md)
+mục 4.3.
 
 ## Ghi chú port sang ESP-IDF
 

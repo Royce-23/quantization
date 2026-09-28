@@ -16,10 +16,49 @@
  * Cho phép raw == normalized (ghi đè tại chỗ). */
 void har_normalize(const float *raw, float *normalized);
 
+/* CẢNH BÁO: KHÔNG THREAD-SAFE / KHÔNG REENTRANT.
+ * har_resnet_predict (và har_block1_forward/har_block2_forward khi được gọi qua nó)
+ * dùng chung các buffer trung gian `static` cấp phát tĩnh trong har_resnet.c
+ * (~56 KB .bss) để tránh malloc/VLA khi port sang ESP32. Hệ quả:
+ *   - chỉ được có TỐI ĐA MỘT lời gọi đang chạy tại một thời điểm;
+ *   - không gọi từ nhiều task/thread FreeRTOS cùng lúc;
+ *   - không gọi từ ngữ cảnh ISR hoặc lồng nhau (re-entrant).
+ * Nếu cần chạy song song: bọc bằng mutex, hoặc sửa để caller tự cấp buffer
+ * (các hàm har_block*_forward đã nhận scratch buffer qua tham số nên đủ điều kiện). */
+
 /* Chạy toàn bộ forward pass ResNetv1-6.
  * x_norm: mảng phẳng đã chuẩn hoá, độ dài 128*9, layout [time][channel].
  * logits: mảng ra, độ dài HAR_NUM_CLASSES (logits thô, KHÔNG softmax). */
 void har_resnet_predict(const float *x_norm, float *logits);
+
+/* ---- API cấp KHỐI (mỗi khối kiến trúc một hàm riêng) ------------------
+ * Dùng để test/đối chiếu từng khối độc lập, hoặc để tái sử dụng khi ghép
+ * pipeline khác. har_resnet_predict() ở trên chỉ là 3 lời gọi liên tiếp
+ * của các hàm dưới đây, dùng chung 5 buffer static hiện có.
+ * Xem docs/model_architecture_and_c_inference.md (mục 2 — công thức toán,
+ * mục 4 — cài đặt C) để đối chiếu công thức/sơ đồ nhánh với các hàm này. */
+
+/* Block 1 — residual block projection shortcut + hạ mẫu trục thời gian 128 -> 64.
+ * x_norm : (128, 9) phẳng [time][channel], ĐÃ z-score.
+ * y64    : (64, 32) phẳng — output khối, do caller cấp.
+ * s128_0, s128_1 : 2 buffer scratch (128*32 float) do caller cấp.
+ * s64_0          : 1 buffer scratch (64*32 float) do caller cấp.
+ * Yêu cầu: 5 con trỏ trên KHÔNG được trùng nhau. */
+void har_block1_forward(const float *x_norm, float *y64,
+                        float *s128_0, float *s128_1, float *s64_0);
+
+/* Block 2 — residual block identity shortcut, giữ nguyên (64, 32).
+ * x64 : (64, 32) phẳng — output của Block 1.
+ * y64 : (64, 32) phẳng — output khối. CHO PHÉP y64 == x64 (ghi đè tại chỗ,
+ *       an toàn vì phép hợp nhánh là element-wise).
+ * s64_0, s64_1 : 2 buffer scratch (64*32 float), phải khác x64 và khác nhau. */
+void har_block2_forward(const float *x64, float *y64,
+                        float *s64_0, float *s64_1);
+
+/* Head — GlobalMaxPooling1D + Dense(32 -> 6), KHÔNG softmax.
+ * x64 : (64, 32) phẳng — output Block 2.
+ * logits : (HAR_NUM_CLASSES,) do caller cấp. */
+void har_head_forward(const float *x64, float *logits);
 
 /* Chỉ số phần tử lớn nhất trong values[0..count-1]. */
 int har_argmax(const float *values, int count);

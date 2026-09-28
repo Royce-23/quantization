@@ -32,3 +32,5 @@ Thumbs.db
 firmware/build/
 # Ghi chú bàn giao nội bộ, không đưa lên repository chính
 .bangiao/
+# Log lỗi test tự động của công cụ nội bộ, không đưa lên repository chính
+.claude/

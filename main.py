@@ -10,6 +10,7 @@ STAGES = {
     "quantize": "quantize", "evaluate": "evaluate",
     "summarize": "summarize_results", "plot": "plot_results",
     "export-c": "export_c",
+    "describe-params": "describe_params",
 }
 
 

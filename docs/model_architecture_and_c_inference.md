@@ -38,103 +38,269 @@ Dự đoán lớp = `argmax(logits)`. Softmax **không nằm trong model** (hu�
 luyện dùng `CategoricalCrossentropy(from_logits=True)`); trong C chỉ cần
 `argmax`, có `har_softmax` cho demo/UI nếu cần xác suất.
 
-### 1.2 Sơ đồ ASCII
+### 1.2 Sơ đồ luồng NHIỀU NHÁNH (đánh số node N0–N15, nhánh A1/B1/A2/B2)
 
 ```text
-        sensor_window (128,9)  [đã z-score]
-              |
-      +-------+--------------------------------+
-      |                                        |
-  block1_conv1 k3 (128,32)                block1_projection k1 (128,32)
-      | ReLU                                   |
-  block1_conv2 k3 (128,32)                block1_shortcut_pool /2 (64,32)
-      |                                        |
-  block1_main_pool /2 (64,32)                  |
-      +------------------ Add -----------------+
-                          | ReLU  -> x (64,32) -------+
-                          |                           |
-                    block2_conv1 k3 (64,32)           | identity
-                          | ReLU                      |
-                    block2_conv2 k3 (64,32)           |
-                          +--------- Add -------------+
-                                     | ReLU (64,32)
-                            global_max_pool -> (32,)
-                            activity_logits Dense(6) -> logits(6)
-                                     | argmax
-                                   class 0..5
+                     xraw (128, 9)  [dữ liệu cảm biến thô]
+                              |
+                      [N0] har_normalize : z-score theo kênh
+                              |
+                     xn (128, 9)  ─────────────── điểm RẼ NHÁNH số 1
+                        /                              \
+        ┌──────────────┘                                └──────────────┐
+        │  NHÁNH A1 (main path — Block 1)               NHÁNH B1 (shortcut — Block 1)
+        │  xuất phát: xn                                 xuất phát: xn (CÙNG nguồn với A1)
+        │                                                │
+   [N1] block1_conv1   Conv1D K=3 same  (128,9)->(128,32)│
+        │  công thức 2.3                                 │
+   [N2] block1_relu1   ReLU             (128,32)         │
+        │  công thức 2.4                            [N5] block1_projection
+   [N3] block1_conv2   Conv1D K=3 same  (128,32)->(128,32)    Conv1D K=1 valid
+        │  công thức 2.3                                 │    (128,9)->(128,32)
+   [N4] block1_main_pool  MaxPool/2     (128,32)->(64,32)│    công thức 2.3 với p=0
+        │  công thức 2.5                            [N6] block1_shortcut_pool
+        │                                                │    MaxPool/2 ->(64,32)
+        └──────────────┐                ┌────────────────┘    công thức 2.5
+                       ▼                ▼
+                  [N7] block1_add   ⊕  (cộng phần tử, công thức 2.6)
+                       │
+                  [N8] block1_output  ReLU        ──> x1 (64, 32)
+                       │
+                       ├──────────────────────────────── điểm RẼ NHÁNH số 2
+                       │                                          \
+        ┌──────────────┘                                           └──────────┐
+        │  NHÁNH A2 (main path — Block 2)                 NHÁNH B2 (identity shortcut)
+        │  xuất phát: x1                                   xuất phát: x1 (KHÔNG phép toán,
+        │                                                  chỉ dẫn thẳng tensor sang ⊕)
+   [N9] block2_conv1   Conv1D K=3 same  (64,32)->(64,32)          │
+        │                                                         │
+  [N10] block2_relu1   ReLU                                       │
+        │                                                         │
+  [N11] block2_conv2   Conv1D K=3 same  (64,32)->(64,32)          │
+        │                                                         │
+        └──────────────┐                         ┌────────────────┘
+                       ▼                         ▼
+                  [N12] block2_add   ⊕  (công thức 2.6)
+                       │
+                  [N13] block2_output ReLU       ──> x2 (64, 32)
+                       │
+                  [N14] global_max_pool  (64,32) -> (32,)   công thức 2.7
+                       │
+                  [N15] activity_logits  Dense(32->6)       công thức 2.8
+                       │
+                     z (6,)  logits thô
+                       │
+                     argmax                                  công thức 2.9
+                       │
+                  lớp 0..5  (WALKING ... LAYING)
 ```
 
 **Ghi chú quan trọng**: mô hình **không có BatchNormalization** ở bất kỳ
-đâu (xem mục 7). Conv1D dùng `use_bias=True` mặc định của Keras.
+đâu (xem mục 7). Conv1D dùng `use_bias=True` mặc định của Keras. Model
+**không có stem conv riêng**: input đi thẳng vào Block 1 (không có bước xử
+lý nào giữa `har_normalize` và `block1_conv1`/`block1_projection`).
 
-## 2. Thuật toán từng phép toán (pseudocode)
+### 1.3 Bảng mô tả nhánh
 
-Ký hiệu: `in[t*Cin + c]` (layout `[time][channel]`),
-`w[(ki*Cin + ci)*Cout + co]` (layout kernel `[k][cin][cout]`, đúng C-order
-flatten của Keras — không transpose), `out[t*Cout + co]`.
+| Nhánh | Xuất phát từ | Đi qua node | Thuật toán trong nhánh | Hợp lại tại | Shape khi hợp |
+| --- | --- | --- | --- | --- | --- |
+| A1 (main, Block 1) | `xn` (128,9) | N1→N2→N3→N4 | Conv k3 → ReLU → Conv k3 → MaxPool/2 | `block1_add` [N7] | (64,32) |
+| B1 (projection shortcut, Block 1) | `xn` (128,9) — **cùng nguồn A1** | N5→N6 | Conv k1 (đổi 9→32 kênh) → MaxPool/2 | `block1_add` [N7] | (64,32) |
+| A2 (main, Block 2) | `x1` (64,32) | N9→N10→N11 | Conv k3 → ReLU → Conv k3 | `block2_add` [N12] | (64,32) |
+| B2 (identity shortcut, Block 2) | `x1` (64,32) — **cùng nguồn A2** | (không node) | không phép toán, truyền thẳng | `block2_add` [N12] | (64,32) |
 
-### 2.1 Conv1D "same", kernel lẻ K, stride 1
+### 1.4 Vì sao B1 cần Conv k=1 còn B2 là identity
 
-Dùng chung cho cả `padding="same"` (K=3) lẫn `padding="valid"` với K=1
-(khi đó `pad = K/2 = 0`, tức không đệm gì — đúng là "valid"):
+Nhánh chính (main) của Block 1 đổi số kênh 9 → 32 **và** độ dài trục thời
+gian 128 → 64. Muốn cộng được (`block1_add`) thì nhánh shortcut phải khớp
+cả 2 chiều với nhánh main, nên B1 bắt buộc phải có `Conv1D k=1` (đổi số
+kênh 9 → 32) rồi `MaxPool/2` (đổi độ dài 128 → 64). Block 2 không đổi
+shape giữa input và output nhánh main (vẫn (64, 32) → (64, 32)) nên B2 để
+**identity** (không có lớp trọng số nào) — rẻ hơn về tham số/tính toán và
+giữ đường gradient sạch (đặc trưng đúng tinh thần residual connection gốc
+của ResNet).
 
-```
-pad = K / 2                      // chia nguyên, K lẻ
-for t in 0 .. L-1:
-    for co in 0 .. Cout-1:
-        acc = bias[co]                       // kiểu float (32-bit)
-        for ki in 0 .. K-1:
-            ts = t + ki - pad
-            if ts < 0 or ts >= L: continue   // zero padding
-            for ci in 0 .. Cin-1:
-                acc += in[ts*Cin + ci] * w[(ki*Cin + ci)*Cout + co]
-        out[t*Cout + co] = acc
-```
+### 1.5 Ánh xạ 3 tầng: Keras ↔ NumPy ↔ C
 
-**Giải thích same-padding của TensorFlow**: với stride 1 và K lẻ,
-`padding="same"` đệm đối xứng `pad_left = pad_right = (K-1)/2 = K/2`
-(chia nguyên), giữ nguyên độ dài chuỗi (`L_out = L_in`). Công thức trên
-khớp chính xác — không có trường hợp lệch 1 vị trí như hay gặp với K chẵn.
+| Khối | Layer Keras | Hàm NumPy (`src/reference_forward.py`) | Hàm C (`firmware/src/har_resnet.c`) |
+| --- | --- | --- | --- |
+| Block 1 | `block1_*` (5 layer) | `block1_forward()` | `har_block1_forward()` |
+| Block 2 | `block2_*` (4 layer) | `block2_forward()` | `har_block2_forward()` |
+| Head | `global_max_pool`, `activity_logits` | `head_forward()` | `har_head_forward()` |
 
-### 2.2 ReLU
+### 1.6 Sơ đồ trực quan
 
-`x[i] = x[i] > 0 ? x[i] : 0` (làm tại chỗ được).
+Bản vẽ matplotlib có nhánh thật (2 điểm rẽ nhánh, 2 node ⊕, nhãn "Nhánh A
+(main)"/"Nhánh B (shortcut)"/"Nhánh B (identity)") tại
+[`results/figures/pipeline/algorithm_flow.png`](../results/figures/pipeline/algorithm_flow.png)
+(bản SVG cùng thư mục để phóng to), sinh bởi `python main.py visualize-pipeline`
+(`src/visualize_pipeline.py`).
 
-### 2.3 MaxPool1D pool=2, stride=2, padding valid
+## 2. Công thức toán của từng phép toán
 
-Dùng cho L chẵn (128 → 64):
+Ký hiệu chung:
 
-```
-for t in 0 .. L/2 - 1:
-    for c in 0 .. C-1:
-        out[t*C + c] = max(in[(2t)*C + c], in[(2t+1)*C + c])
-```
-
-### 2.4 Add
-
-`out[i] = a[i] + b[i]`.
-
-### 2.5 GlobalMaxPool1D
-
-```
-for c in 0 .. C-1:
-    m = -FLT_MAX
-    for t in 0 .. L-1: m = max(m, in[t*C + c])
-    out[c] = m
+```text
+L      : độ dài trục thời gian (128 hoặc 64)
+Cin    : số kênh vào ; Cout : số kênh ra ; K : kích thước kernel (lẻ)
+p      = floor(K / 2)                       (số ô đệm mỗi bên, same-padding)
+x[t][c]    : activation, layout [time][channel], phẳng -> x_flat[t*Cin + c]
+W[k][ci][co] : kernel Conv1D, phẳng -> w_flat[(k*Cin + ci)*Cout + co]
+b[co]      : bias, phẳng -> b_flat[co]
 ```
 
-### 2.6 Dense
+### 2.1 Chuẩn hoá z-score theo kênh (tiền xử lý, ngoài model Keras)
 
-`out[o] = bias[o] + sum_i in[i] * w[i*Dout + o]`.
+```text
+xn[t][c] = ( xraw[t][c] - mu[c] ) / sigma[c] ,   t = 0..127 ,  c = 0..8
+```
+`mu`, `sigma` fit **chỉ trên tập train**, lưu ở `data/processed/preprocess.json`,
+export sang `har_input_mean[9]`, `har_input_std[9]`.
 
-### 2.7 Normalize (z-score, áp dụng trước layer 1)
+### 2.2 Zero-padding (định nghĩa phụ, dùng cho 2.3)
 
-`xn[t*9 + c] = (x_raw[t*9 + c] - mean[c]) / std[c]`, `mean`/`std` lấy từ
-`data/processed/preprocess.json` (fit trên tập train của model, không rò rỉ
-dữ liệu validation/test).
+```text
+xtilde[s][c] = x[s][c]   nếu 0 <= s < L
+xtilde[s][c] = 0         nếu s < 0  hoặc  s >= L
+```
 
-Kiểu tích luỹ: **`float` 32-bit** ở cả C và NumPy reference (không dùng
-`double`), để sát nhất với kernel float32 của TensorFlow.
+### 2.3 Conv1D "same", stride 1, K lẻ, có bias
+
+```text
+y[t][co] = b[co] + SUM_{k=0}^{K-1} SUM_{ci=0}^{Cin-1} W[k][ci][co] * xtilde[t + k - p][ci]
+
+với t = 0 .. L-1 ,  co = 0 .. Cout-1 ,  p = floor(K/2)
+L_out = L      (same-padding, stride 1, K lẻ  =>  giữ nguyên độ dài)
+```
+
+**Giải thích same-padding TensorFlow:** với stride 1 và K **lẻ**, TF đệm đối xứng
+`pad_left = pad_right = (K-1)/2 = floor(K/2)`, nên `L_out = L`. Trường hợp `K = 1`
+cho `p = 0` → không đệm gì → **trùng khít với `padding="valid"`**; vì vậy layer
+`block1_projection` (k=1, valid) dùng chung đúng công thức này.
+
+Dạng đã thay chỉ số phẳng (chính xác như code C):
+```text
+out[t*Cout + co] = b[co] + SUM_k SUM_ci  in[(t+k-p)*Cin + ci] * w[(k*Cin + ci)*Cout + co]
+                   (bỏ qua các số hạng có  t+k-p < 0  hoặc  t+k-p >= L)
+```
+
+Kiểu tích luỹ: **float 32-bit**, cộng dồn theo thứ tự `k` ngoài, `ci` trong
+(khớp chính xác `firmware/src/har_resnet.c::har_conv1d_same` và
+`src/reference_forward.py::conv1d_same` — không dùng `double`).
+
+### 2.4 ReLU
+
+```text
+y[i] = max(0, x[i])
+```
+
+### 2.5 MaxPool1D, pool = 2, stride = 2, padding "valid"
+
+```text
+y[t][c] = max( x[2t][c] , x[2t+1][c] ) ,   t = 0 .. floor(L/2) - 1
+L_out = floor(L / 2)        (ở đây L luôn chẵn: 128 -> 64)
+```
+
+### 2.6 Hợp nhánh residual (Add + ReLU)
+
+```text
+y[t][c] = max( 0 , F[t][c] + S[t][c] )
+
+F = output nhánh chính (main path)
+S = output nhánh tắt (shortcut):
+      Block 1: S = MaxPool2( Conv1D_{K=1}( xn ) )      (projection shortcut)
+      Block 2: S = x                                    (identity shortcut)
+```
+
+### 2.7 GlobalMaxPooling1D (max theo trục thời gian)
+
+```text
+g[c] = max_{0 <= t < L} x[t][c] ,   c = 0 .. C-1
+(L, C) -> (C,)      ở đây: (64, 32) -> (32,)
+```
+
+### 2.8 Dense (fully connected), không activation
+
+```text
+z[o] = b[o] + SUM_{i=0}^{Din-1} g[i] * W[i][o] ,   o = 0 .. Dout-1
+phẳng: out[o] = b[o] + SUM_i in[i] * w[i*Dout + o]
+(32,) -> (6,)   — đây là LOGITS THÔ
+```
+
+### 2.9 Dự đoán và softmax (softmax KHÔNG nằm trong model)
+
+```text
+yhat = argmax_{o} z[o]
+
+(chỉ cho demo/UI, ổn định số:)
+m    = max_j z[j]
+p[o] = exp( z[o] - m ) / SUM_j exp( z[j] - m )
+```
+Huấn luyện dùng `CategoricalCrossentropy(from_logits=True)` nên softmax nằm ngoài
+đồ thị model; `argmax(z) == argmax(softmax(z))` nên C chỉ cần `har_argmax`.
+
+### 2.10 Công thức đếm tham số
+
+```text
+Conv1D : n_param = K * Cin * Cout + Cout
+Dense  : n_param = Din * Dout + Dout
+```
+| Layer | Thay số | Tham số |
+| --- | --- | ---: |
+| `block1_conv1` | 3·9·32 + 32 | 896 |
+| `block1_conv2` | 3·32·32 + 32 | 3 104 |
+| `block1_projection` | 1·9·32 + 32 | 320 |
+| `block2_conv1` | 3·32·32 + 32 | 3 104 |
+| `block2_conv2` | 3·32·32 + 32 | 3 104 |
+| `activity_logits` | 32·6 + 6 | 198 |
+| **Tổng** | | **10 726** |
+
+### 2.11 Công thức đếm phép nhân–cộng (MAC) — chính xác và chặn trên
+
+Chặn trên đơn giản `L·Cout·K·Cin` không trừ phần zero-padding ở biên nên
+**cao hơn thực tế**. Công thức chính xác trừ đúng số tap bị cắt ở biên:
+
+```text
+số tap hợp lệ  = K*L - p*(p+1)          (stride 1, same-padding, K lẻ, p = floor(K/2))
+MAC_chính_xác  = ( K*L - p*(p+1) ) * Cin * Cout
+MAC_chặn_trên  =        K*L         * Cin * Cout
+Số phép cộng bias = L * Cout
+```
+Kiểm tra: K=3 → p=1 → tap = 3L−2. K=1 → p=0 → tap = L (không có biên bị cắt). ✔
+
+| Layer | Chặn trên | Chính xác (trừ zero-pad) |
+| --- | ---: | ---: |
+| `block1_conv1` (K=3, L=128, 9→32) | 110 592 | (3·128−2)·9·32 = **110 016** |
+| `block1_conv2` (K=3, L=128, 32→32) | 393 216 | 382·1024 = **391 168** |
+| `block1_projection` (K=1, L=128, 9→32) | 36 864 | 128·9·32 = **36 864** |
+| `block2_conv1` (K=3, L=64, 32→32) | 196 608 | (3·64−2)·1024 = **194 560** |
+| `block2_conv2` (K=3, L=64, 32→32) | 196 608 | **194 560** |
+| `activity_logits` | 192 | **192** |
+| **Tổng** | **934 080** | **927 360** |
+
+Con số **927 360** (≈0,93 MMAC/cửa sổ) là số phép nhân–cộng **chính xác**
+mỗi lần suy luận (1 cửa sổ 128×9); **934 080** chỉ là chặn trên lý thuyết
+nếu không trừ các vị trí kernel rơi ra ngoài biên chuỗi thời gian.
+
+### 2.12 Công thức lượng tử hoá affine INT8 (CHỈ MÔ TẢ — CHƯA triển khai trong `firmware/`)
+
+Đưa vào đây để nối mạch với `docs/quantization.md`; nhắc lại rõ: đây **chỉ
+là công thức tham khảo**, `firmware/` hiện chỉ có suy luận FP32 (xem mục 6.1).
+
+```text
+Lượng tử hoá   : q = clip( round( r / S + Z ), -128, 127 )
+Giải lượng tử  : r_xapxi = S * ( q - Z )
+S = scale (float32 > 0) ,  Z = zero_point (int8)
+
+Conv INT8 (dạng tổng quát của TFLite, per-channel cho weight, Zw = 0):
+  acc_int32[t][co] = SUM_k SUM_ci ( q_x[t+k-p][ci] - Zx ) * q_w[k][ci][co]  + q_b[co]
+  q_y[t][co] = clip( Z_y + round( M[co] * acc_int32[t][co] ), -128, 127 )
+  với M[co] = (Sx * Sw[co]) / Sy , hiện thực bằng (multiplier int32, shift) thay cho float.
+```
+
+Lưu ý: khối INT8 ở trên tích luỹ bằng `int32` (`acc_int32`), KHÁC với op FP32
+ở mục 2.1–2.9 (tích luỹ `float` 32-bit, xem câu cuối mục 2.3) — hai kiểu
+tích luỹ này không dùng chung, không nhầm lẫn.
 
 ## 3. Trích xuất tham số (parameters)
 
@@ -153,6 +319,15 @@ Lệnh `python main.py export-c` (cài đặt tại `src/export_c.py`) thực hi
 5. Sinh mã C tĩnh (mục 4) và `models/params_manifest.json` (checkpoint_id,
    danh sách layer/shape/số tham số, sha256 + số byte từng file C sinh ra,
    môi trường Python/NumPy/TensorFlow).
+
+Lệnh `python main.py describe-params` (cài đặt tại `src/describe_params.py`,
+chạy sau `export-c`) đọc `models/params_fp32.npz` và sinh báo cáo tham số
+CHI TIẾT (vai trò, nguồn input, ý nghĩa từng chiều shape, công thức toán,
+tên biến C, layout, thống kê min/max/mean/std từng tensor) tại
+[`results/parameters_reference.md`](../results/parameters_reference.md).
+File này bổ sung cho `models/params_manifest.json` (vốn chỉ có shape/số
+lượng, không có ngữ nghĩa) — dùng khi cần tra cứu nhanh ý nghĩa một tham số
+cụ thể mà không phải đọc lại `src/model.py`.
 
 ### 3.1 Layout dữ liệu (đã chốt, không tự suy luận lại)
 
@@ -201,6 +376,15 @@ int  har_argmax(const float *values, int count);
 void har_softmax(const float *logits, int count, float *probs);
 const char *har_label_name(int class_id);
 
+/* API cấp KHỐI — mỗi khối kiến trúc một hàm riêng (Y1: "phần thuật toán ở
+ * mỗi khối viết bằng C"). har_resnet_predict() chỉ còn 3 lời gọi liên tiếp
+ * của 3 hàm dưới đây, dùng chung 5 buffer static ở mục 4.2. */
+void har_block1_forward(const float *x_norm, float *y64,
+                        float *s128_0, float *s128_1, float *s64_0);
+void har_block2_forward(const float *x64, float *y64,
+                        float *s64_0, float *s64_1);
+void har_head_forward(const float *x64, float *logits);
+
 void har_conv1d_same(const float *in, int len, int cin,
                       const float *w, const float *b,
                       int ksize, int cout, float *out);
@@ -217,7 +401,17 @@ void har_dense(const float *in, int din, const float *w, const float *b,
 và `har_golden.{h,c}` **sinh tự động** bởi `src/export_c.py` (có dòng cảnh
 báo "TỰ ĐỘNG SINH — KHÔNG SỬA TAY" ở đầu file).
 
-### 4.2 Lịch trình buffer tĩnh (không malloc, không VLA)
+Mỗi hàm khối (`har_block1_forward`, `har_block2_forward`, `har_head_forward`,
+kể cả các hàm `static` nội bộ theo nhánh) có block comment 5 mục **NGUỒN
+INPUT / CẤU TRÚC / CÔNG THỨC / SHAPE / THAM SỐ** ngay phía trên định nghĩa —
+đối chiếu trực tiếp với sơ đồ nhánh ở mục 1.2 và công thức ở mục 2.
+
+CẢNH BÁO: **Không thread-safe**: `har_resnet_predict` (và các hàm khối khi gọi qua
+nó) dùng chung 5 buffer `static` ở mục 4.2 — chỉ được có tối đa 1 lời gọi
+đang chạy tại một thời điểm, không gọi từ nhiều task/thread hay ISR cùng lúc
+(chi tiết xem comment trong `firmware/include/har_resnet.h`).
+
+### 4.2 Cấu trúc theo khối + lịch trình buffer tĩnh (không malloc, không VLA)
 
 ```c
 static float buf_a[128 * 32];   /* 16 KB */
@@ -227,37 +421,97 @@ static float buf_d[64 * 32];    /*  8 KB */
 static float buf_e[64 * 32];    /*  8 KB */
 ```
 
-Trình tự trong `har_resnet_predict` (13 bước, cố định theo kế hoạch):
+`har_resnet_predict` — sau tái cấu trúc: chỉ còn 3 lời gọi khối, dùng lại
+đúng 5 buffer trên (không thêm/bớt, `.bss` không đổi):
+
+```c
+void har_resnet_predict(const float *x_norm, float *logits) {
+    /* Khối 1: (128,9) -> (64,32). scratch: buf_a, buf_b, buf_d. */
+    har_block1_forward(x_norm, buf_c, buf_a, buf_b, buf_d);
+    /* Khối 2: (64,32) -> (64,32), ghi đè tại chỗ lên buf_c. scratch: buf_e, buf_d. */
+    har_block2_forward(buf_c, buf_c, buf_e, buf_d);
+    /* Head: (64,32) -> logits(6). */
+    har_head_forward(buf_c, logits);
+}
+```
+
+Bên trong từng hàm khối (thứ tự op và tham số giữ **nguyên xi** so với bản
+trước khi tách hàm — kiểm chứng bit-exact ở mục 5):
 
 ```
-1.  conv1d_same(x_norm, 128, 9,  block1_conv1_w/b,  3, 32) -> buf_a
-2.  relu(buf_a, 128*32)
-3.  conv1d_same(buf_a, 128, 32, block1_conv2_w/b,  3, 32) -> buf_b
-4.  maxpool1d_2(buf_b, 128, 32) -> buf_c
-5.  conv1d_same(x_norm, 128, 9, block1_projection_w/b, 1, 32) -> buf_a   (ghi đè, hợp lệ)
-6.  maxpool1d_2(buf_a, 128, 32) -> buf_d
-7.  add(buf_c, buf_d, 64*32) -> buf_c ; relu(buf_c)            // buf_c = x sau block1
-8.  conv1d_same(buf_c, 64, 32, block2_conv1_w/b, 3, 32) -> buf_e
-9.  relu(buf_e, 64*32)
-10. conv1d_same(buf_e, 64, 32, block2_conv2_w/b, 3, 32) -> buf_d
-11. add(buf_d, buf_c, 64*32) -> buf_c ; relu(buf_c)
-12. global_max_pool(buf_c, 64, 32) -> pooled[32]  (mảng local, 128 byte)
-13. dense(pooled, 32, activity_logits_w/b, 6) -> logits
+har_block1_branch_main(x_norm, s128_0, s128_1, out64):      NHÁNH A1
+    1. conv1d_same(x_norm, 128, 9,  block1_conv1_w/b, K=3, 32) -> s128_0
+    2. relu(s128_0, 128*32)
+    3. conv1d_same(s128_0, 128, 32, block1_conv2_w/b, K=3, 32) -> s128_1
+    4. maxpool1d_2(s128_1, 128, 32) -> out64
+
+har_block1_branch_shortcut(x_norm, s128_0, out64):           NHÁNH B1
+    5. conv1d_same(x_norm, 128, 9, block1_projection_w/b, K=1, 32) -> s128_0
+    6. maxpool1d_2(s128_0, 128, 32) -> out64
+
+har_residual_merge_relu(main, shortcut, count, out):         HỢP NHÁNH (⊕)
+    add(main, shortcut, count, out); relu(out, count)
+
+har_block1_forward = branch_main(-> y64) ; branch_shortcut(-> s64_0) ;
+                     residual_merge_relu(y64, s64_0 -> y64)
+
+har_block2_branch_main(x64, s64_0, out64):                   NHÁNH A2
+    8.  conv1d_same(x64,   64, 32, block2_conv1_w/b, K=3, 32) -> s64_0
+    9.  relu(s64_0, 64*32)
+    10. conv1d_same(s64_0, 64, 32, block2_conv2_w/b, K=3, 32) -> out64
+
+har_block2_forward = branch_main(-> s64_1) ;                  NHÁNH B2 = identity (x64)
+                     residual_merge_relu(s64_1, x64 -> y64)
+
+har_head_forward(x64, logits):
+    12. global_max_pool(x64, 64, 32) -> pooled[32]  (mảng local, 128 byte)
+    13. dense(pooled, 32, activity_logits_w/b, 6) -> logits
 ```
+
+Bảng ánh xạ buffer khi `har_resnet_predict` gọi các hàm khối:
+
+| Lời gọi | x_norm/x64 (input) | y64 (output) | scratch |
+| --- | --- | --- | --- |
+| `har_block1_forward` | `x_norm` (do caller cấp) | `buf_c` | `buf_a`, `buf_b`, `buf_d` |
+| `har_block2_forward` | `buf_c` | `buf_c` (ghi đè tại chỗ) | `buf_e`, `buf_d` |
+| `har_head_forward` | `buf_c` | `logits` (do caller cấp) | — |
 
 ### 4.3 RAM/độ phức tạp
 
-**RAM tĩnh** (đo bằng `size firmware/build/test_inference`, khớp tính tay):
+**RAM tĩnh của THƯ VIỆN suy luận** (đây là con số dùng để tính RAM thực tế
+trên ESP32 — production firmware KHÔNG link `test/test_inference.c`, chỉ
+link `har_resnet.c` + `har_resnet_params.c`). Đo bằng cách biên dịch
+`har_resnet.c` thành object file riêng, tách khỏi mọi buffer chỉ phục vụ
+test:
+
+```bash
+cd firmware && cc -std=c99 -O2 -Wall -Wextra -Wpedantic -Iinclude \
+  -c src/har_resnet.c -o /tmp/har_resnet_lib.o
+size /tmp/har_resnet_lib.o
+```
 
 | Thành phần | Byte |
 | --- | ---: |
 | `buf_a` + `buf_b` (128×32 float ×2) | 32 768 |
 | `buf_c` + `buf_d` + `buf_e` (64×32 float ×3) | 24 576 |
-| **Tổng buffer trung gian (.bss)** | **57 344 (~56 KB)** |
+| **Tổng buffer trung gian (.bss) — chỉ thư viện** | **57 344 (~56 KB)** |
 | Input `x_norm` (128×9 float, do caller cấp) | 4 608 (~4,5 KB) |
 | `pooled` (biến local trong hàm) | 128 |
 | `logits` (do caller cấp) | 24 |
-| **Tổng RAM hoạt động ước lượng** | **≈ 62 KB** |
+| **Tổng RAM hoạt động ước lượng (production, không có test)** | **≈ 62 KB** |
+
+**Lưu ý về `.bss` của binary test `firmware/build/test_inference`:** binary
+này KHÔNG dùng để ước lượng RAM ESP32, vì `firmware/test/test_inference.c`
+cấp thêm **5 buffer `static` RIÊNG** (57 344 byte, độc lập với 5 buffer của
+thư viện ở trên) chỉ để chạy `check_block_decomposition()` — hàm này cố
+tình gọi `har_block1_forward → har_block2_forward → har_head_forward` bằng
+buffer riêng của test, tách biệt khỏi buffer nội bộ `har_resnet.c`, để so
+sánh `==` tuyệt đối với `har_resnet_predict()`. Vì vậy `size
+firmware/build/test_inference` cho ra **`.bss = 114 720` byte** (= 57 344
+thư viện + 57 344 buffer test-only), gần gấp đôi con số 57 344 ở trên — đây
+là chi phí RAM CỦA RIÊNG BỘ TEST TRÊN PC, KHÔNG PHẢI chi phí RAM của thư
+viện suy luận khi tích hợp vào firmware ESP32 thật (không biên dịch cùng
+`test/test_inference.c`). Xem số đo thực tế và lệnh kiểm chứng ở mục 5.
 
 ESP32 (dòng phổ biến) có ~320 KB DRAM nội bộ → RAM hoạt động của model này
 chiếm khoảng 19% DRAM, khả thi khi port sang ESP-IDF.
@@ -265,19 +519,19 @@ chiếm khoảng 19% DRAM, khả thi khi port sang ESP-IDF.
 Bảng trọng số 10 726 tham số × 4 byte ≈ **41,9 KB** nằm trong mảng `const
 float` (`.rodata`) — trên ESP32 phần này nằm ở **flash**, không tốn DRAM.
 
-**Số phép nhân-cộng (MAC)** mỗi cửa sổ suy luận (ước lượng theo kích thước
-kernel đầy đủ, chưa trừ các vị trí bị zero-padding ở biên — số thực tế nhỏ
-hơn một chút):
+**Số phép nhân-cộng (MAC)** mỗi cửa sổ suy luận — xem công thức đầy đủ và
+giải thích tại mục 2.11. Nhắc lại bảng 2 cột (chặn trên vs chính xác đã trừ
+zero-padding ở biên):
 
-| Layer | Công thức `L_out × Cout × K × Cin` | MAC |
-| --- | --- | ---: |
-| `block1_conv1` | 128×32×3×9 | 110 592 |
-| `block1_conv2` | 128×32×3×32 | 393 216 |
-| `block1_projection` | 128×32×1×9 | 36 864 |
-| `block2_conv1` | 64×32×3×32 | 196 608 |
-| `block2_conv2` | 64×32×3×32 | 196 608 |
-| `activity_logits` (dense) | 32×6 | 192 |
-| **Tổng** | | **934 080 (~0,93 MMAC/cửa sổ)** |
+| Layer | Chặn trên | Chính xác (trừ zero-pad) |
+| --- | ---: | ---: |
+| `block1_conv1` (K=3, L=128, 9→32) | 110 592 | 110 016 |
+| `block1_conv2` (K=3, L=128, 32→32) | 393 216 | 391 168 |
+| `block1_projection` (K=1, L=128, 9→32) | 36 864 | 36 864 |
+| `block2_conv1` (K=3, L=64, 32→32) | 196 608 | 194 560 |
+| `block2_conv2` (K=3, L=64, 32→32) | 196 608 | 194 560 |
+| `activity_logits` (dense) | 192 | 192 |
+| **Tổng** | **934 080** | **927 360 (~0,93 MMAC/cửa sổ)** |
 
 ### 4.4 Ràng buộc code C
 
@@ -303,26 +557,40 @@ TensorFlow 2.16.1, NumPy 1.26.4, `cc`/gcc trên Linux):
 
 - `src/reference_forward.py::forward_batch` so với `baseline_logits` của
   Keras trên 12 mẫu sanity: **max |diff| = 1.9073486e-06**, argmax khớp
-  **12/12**. (Ngưỡng chặn theo kế hoạch: < 1e-4 — đạt rất xa ngưỡng.)
+  **12/12**. (Ngưỡng chặn dùng trong `tests/test_c_export.py`: < 1e-4 — đạt rất xa ngưỡng.)
 - `firmware/build/test_inference` (C, so với cùng 12 golden vector): tất cả
   12 mẫu có **argmax khớp Keras**, **max_abs_diff trên logits ≈ 1e-6**
-  (< ngưỡng chấp nhận 1e-3), test `har_normalize` đạt (sai số ≤ 6e-8), in
-  `PASS`, **exit code 0**.
+  (< ngưỡng chấp nhận 1e-3), test `har_normalize` đạt (sai số ≤ 6e-8),
+  `check_block_decomposition` (`har_block1_forward` → `har_block2_forward` →
+  `har_head_forward` so với `har_resnet_predict` nguyên khối, so sánh `==`
+  tuyệt đối) đạt **OK**, in `PASS`, **exit code 0**.
 - `cc -std=c99 -Wall -Wextra -Wpedantic -Iinclude -c src/har_resnet.c -o
   /dev/null`: **0 warning**.
-- `size firmware/build/test_inference`: `bss = 57376` byte, khớp ước lượng
-  56 KB buffer tĩnh ở mục 4.3 (chênh lệch nhỏ do các biến `bss` khác của
-  runtime C).
+- RAM thực tế của **thư viện** (con số dùng cho ESP32, xem giải thích đầy đủ
+  ở mục 4.3): `cc -std=c99 -O2 -Wall -Wextra -Wpedantic -Iinclude -c
+  src/har_resnet.c -o /tmp/har_resnet_lib.o && size /tmp/har_resnet_lib.o`
+  → `bss = 57 344` byte, khớp đúng ước lượng 56 KB buffer tĩnh ở mục 4.3.
+- `size firmware/build/test_inference` (binary TEST đầy đủ, có thêm 5
+  buffer test-only của `check_block_decomposition`): `bss = 114 720` byte
+  (= 57 344 thư viện + 57 344 buffer riêng của `test/test_inference.c`) —
+  **đây KHÔNG phải chi phí RAM của thư viện suy luận**, chỉ là `.bss` của
+  chương trình test trên PC; xem giải thích ở mục 4.3.
 
 Sai số C so với Python-NumPy-reference nhỏ hơn nhiều so với sai số giữa
 NumPy-reference và Keras — vì cả hai (C và NumPy reference) cùng dùng
-`float32` và cùng thứ tự cộng dồn theo pseudocode mục 2, còn Keras/TensorFlow
+`float32` và cùng thứ tự cộng dồn theo công thức mục 2, còn Keras/TensorFlow
 dùng kernel BLAS tối ưu với thứ tự cộng khác (nhưng vẫn nằm trong sai số
 tích luỹ float32 chấp nhận được).
 
 ## 6. Giới hạn và hướng phát triển tiếp (INT8/ESP32)
 
-Xem chi tiết tại mục 9 của `.bangiao/ke-hoach.md`. Tóm tắt:
+### 6.1 Công thức lượng tử hoá INT8 — CHƯA triển khai trong `firmware/`
+
+Công thức affine đầy đủ (lượng tử hoá/giải lượng tử, conv INT8 dạng TFLite
+per-channel) đã trình bày ở mục 2.12. Nhắc lại: đây **chỉ là mô tả toán
+học**, `firmware/` hiện chỉ có suy luận FP32 (xem tóm tắt bên dưới).
+
+Tóm tắt các hướng mở rộng còn lại:
 
 1. **INT8 trong C**: chưa làm. TV2 đã tạo và đánh giá `.tflite` full-integer
    INT8 cùng `scale`/`zero_point`, nhưng firmware viết tay hiện vẫn là FP32.
@@ -350,7 +618,7 @@ bố.
 
 Mô hình **không có BatchNormalization** ở bất kỳ layer nào (xác nhận trực
 tiếp trong `src/model.py`, và số tham số 10 726 chỉ khớp phép tính tay khi
-không có BN — xem `.bangiao/ke-hoach.md` mục 1.1). Vì vậy code C trong
+không có BN — xem bảng tham số ở mục 1.1 và mục 2.10). Vì vậy code C trong
 `firmware/` **không cài đặt op BatchNorm**; nếu về sau huấn luyện lại một
 kiến trúc có BN, cần thêm bước BN riêng vào cả `reference_forward.py` lẫn
 `har_resnet.c` — hiện tại là ngoài phạm vi để không phá baseline đã công bố.

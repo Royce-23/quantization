@@ -1,6 +1,6 @@
 /* Chương trình kiểm thử C: chạy 12 golden vector qua har_resnet_predict và
  * đối chiếu với logits do models/baseline.keras (TensorFlow) sinh ra.
- * Viết tay — mục 5.6 của .bangiao/ke-hoach.md. */
+ * Viết tay — xem docs/model_architecture_and_c_inference.md mục 5. */
 #include <math.h>
 #include <stdio.h>
 
@@ -57,11 +57,48 @@ static int check_normalize(void) {
     return ok;
 }
 
+/* check_block_decomposition — xác nhận phân rã theo khối (har_block1_forward
+ * -> har_block2_forward -> har_head_forward) cho ra kết quả BẰNG TUYỆT ĐỐI
+ * (không sai số) so với har_resnet_predict() nguyên khối, trên cùng 1 mẫu
+ * golden input. Dùng buffer static RIÊNG (không tái sử dụng buffer nội bộ
+ * của har_resnet.c) để không phụ thuộc chi tiết cài đặt. */
+static float block_test_s128_0[128 * 32];
+static float block_test_s128_1[128 * 32];
+static float block_test_s64_0[64 * 32];
+static float block_test_s64_1[64 * 32];
+static float block_test_x64[64 * 32];
+
+static int check_block_decomposition(void) {
+    float logits_a[HAR_NUM_CLASSES];
+    float logits_b[HAR_NUM_CLASSES];
+    int c;
+    int ok = 1;
+
+    /* (a) phân rã theo khối: block1 -> block2 -> head. */
+    har_block1_forward(har_golden_input[0], block_test_x64,
+                        block_test_s128_0, block_test_s128_1, block_test_s64_0);
+    har_block2_forward(block_test_x64, block_test_x64,
+                        block_test_s64_0, block_test_s64_1);
+    har_head_forward(block_test_x64, logits_a);
+
+    /* (b) hàm nguyên khối hiện có. */
+    har_resnet_predict(har_golden_input[0], logits_b);
+
+    for (c = 0; c < HAR_NUM_CLASSES; c++) {
+        if (logits_a[c] != logits_b[c]) {
+            ok = 0;
+        }
+    }
+    printf("block_decomposition == har_resnet_predict: %s\n", ok ? "OK" : "FAIL");
+    return ok;
+}
+
 int main(void) {
     int i;
     int all_argmax_ok = 1;
     int all_logit_ok = 1;
     int normalize_ok;
+    int block_decomposition_ok;
 
     printf("HAR_CHECKPOINT_ID=%s\n", HAR_CHECKPOINT_ID);
     printf("idx | label              | expected_pred | got_pred | max_abs_diff\n");
@@ -99,12 +136,13 @@ int main(void) {
     }
 
     normalize_ok = check_normalize();
+    block_decomposition_ok = check_block_decomposition();
 
-    if (all_argmax_ok && all_logit_ok && normalize_ok) {
+    if (all_argmax_ok && all_logit_ok && normalize_ok && block_decomposition_ok) {
         printf("PASS\n");
         return 0;
     }
-    printf("FAIL (argmax_ok=%d logit_ok=%d normalize_ok=%d)\n", all_argmax_ok,
-           all_logit_ok, normalize_ok);
+    printf("FAIL (argmax_ok=%d logit_ok=%d normalize_ok=%d block_decomposition_ok=%d)\n",
+           all_argmax_ok, all_logit_ok, normalize_ok, block_decomposition_ok);
     return 1;
 }
