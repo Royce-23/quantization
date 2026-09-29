@@ -1,0 +1,37 @@
+name: Deploy interactive quantization diagram
+
+on:
+  push:
+    branches: [An]
+    paths:
+      - 'results/figures/pipeline/quantization_har_archify.html'
+      - '.github/workflows/deploy-diagram-pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prepare the single-page artifact
+        run: |
+          mkdir -p public
+          cp results/figures/pipeline/quantization_har_archify.html public/index.html
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: public
+      - id: deployment
+        uses: actions/deploy-pages@v4
