@@ -128,7 +128,61 @@ của ResNet).
 | Block 2 | `block2_*` (4 layer) | `block2_forward()` | `har_block2_forward()` |
 | Head | `global_max_pool`, `activity_logits` | `head_forward()` | `har_head_forward()` |
 
-### 1.6 Sơ đồ trực quan
+### 1.6 Bản đồ tra cứu từng node: công thức → thuật toán → code
+
+Bảng này dùng khi trình bày sơ đồ: mỗi node N0–N15 không phải là một hộp
+vẽ thêm cho đẹp mà đều truy ngược được về (i) công thức ở mục 2, (ii) layer
+Keras thật trong `src/model.py`, và (iii) hàm NumPy/C thực thi cùng phép
+tính. Tên hàm C không kèm số dòng để tài liệu không lỗi thời khi code được
+chỉnh sửa; dùng tìm kiếm theo tên hàm trong file đã nêu.
+
+| Node | Input → output | Công thức / thuật toán | Keras hoặc NumPy tham chiếu | C tương ứng | Tham số thật |
+| --- | --- | --- | --- | --- | --- |
+| N0 `Z-score` | `(128,9) → (128,9)` | Mục 2.1: `(x−μ)/σ` theo từng kênh | `prepare_data.py::split_and_normalize`; `reference_forward.py::normalize` | `har_normalize` | `har_input_mean[9]`, `har_input_std[9]` |
+| N1 `block1_conv1` | `(128,9) → (128,32)` | Mục 2.3: Conv1D K=3, same, bias | `model.py::build_model`; `conv1d_same` | `har_conv1d_same`, gọi bởi `har_block1_branch_main` | `block1_conv1_w (3,9,32)`, `b (32,)`: 896 |
+| N2 `block1_relu1` | `(128,32) → (128,32)` | Mục 2.4: `max(0,x)` | `relu` | `har_relu`, trong `har_block1_branch_main` | 0 |
+| N3 `block1_conv2` | `(128,32) → (128,32)` | Mục 2.3: Conv1D K=3, same, bias | `conv1d_same` | `har_conv1d_same`, trong `har_block1_branch_main` | `block1_conv2_w (3,32,32)`, `b (32,)`: 3.104 |
+| N4 `main_pool` | `(128,32) → (64,32)` | Mục 2.5: `max(x[2t],x[2t+1])` | `maxpool1d_2` | `har_maxpool1d_2`, trong `har_block1_branch_main` | 0 |
+| N5 `projection` | `(128,9) → (128,32)` | Mục 2.3 với K=1, nên không padding; đổi kênh 9→32 | `conv1d_same` | `har_conv1d_same`, gọi bởi `har_block1_branch_shortcut` | `block1_projection_w (1,9,32)`, `b (32,)`: 320 |
+| N6 `shortcut_pool` | `(128,32) → (64,32)` | Mục 2.5: MaxPool/2; làm shortcut khớp shape nhánh main | `maxpool1d_2` | `har_maxpool1d_2`, trong `har_block1_branch_shortcut` | 0 |
+| N7 `block1_add` | hai `(64,32) → (64,32)` | Mục 2.6: `ReLU(F(x)+S(x))` | `add` rồi `relu` trong `block1_forward` | `har_residual_merge_relu` → `har_add` + `har_relu` | 0 |
+| N8 `block1_output` | `(64,32) → (64,32)` | Chính là output ReLU của N7, không phải layer có thêm trọng số | giá trị trả về `block1_forward` | output `har_block1_forward` | 0 |
+| N9 `block2_conv1` | `(64,32) → (64,32)` | Mục 2.3: Conv1D K=3, same, bias | `conv1d_same` | `har_conv1d_same`, trong `har_block2_branch_main` | `block2_conv1_w (3,32,32)`, `b (32,)`: 3.104 |
+| N10 `block2_relu1` | `(64,32) → (64,32)` | Mục 2.4: `max(0,x)` | `relu` | `har_relu`, trong `har_block2_branch_main` | 0 |
+| N11 `block2_conv2` | `(64,32) → (64,32)` | Mục 2.3: Conv1D K=3, same, bias | `conv1d_same` | `har_conv1d_same`, trong `har_block2_branch_main` | `block2_conv2_w (3,32,32)`, `b (32,)`: 3.104 |
+| N12 `block2_add` | hai `(64,32) → (64,32)` | Mục 2.6: `ReLU(F(x)+x)`; shortcut là identity | `add` rồi `relu` trong `block2_forward` | `har_residual_merge_relu(s64_1, x64, ...)` | 0 |
+| N13 `block2_output` | `(64,32) → (64,32)` | Chính là output ReLU của N12 | giá trị trả về `block2_forward` | output `har_block2_forward` | 0 |
+| N14 `global_max_pool` | `(64,32) → (32,)` | Mục 2.7: lấy max theo 64 thời điểm, cho mỗi channel | `global_max_pool` | `har_global_max_pool`, trong `har_head_forward` | 0 |
+| N15 `Dense + argmax` | `(32,) → (6,) → class` | Mục 2.8 Dense tạo logits; mục 2.9 chọn `argmax` | `dense`; `numpy.argmax` | `har_dense`, `har_argmax`, trong/sau `har_head_forward` | `activity_logits_w (32,6)`, `b (6,)`: 198 |
+
+Tổng tham số có trọng số là `896 + 3.104 + 320 + 3.104 + 3.104 + 198 =
+10.726`; ReLU, Pool, Add, identity, GlobalMaxPool và argmax là các phép
+toán không có tham số học.
+
+### 1.7 Bản đồ các node PTQ: công thức → code → phạm vi C
+
+Các node sau `FP32 classifier` trong sơ đồ là **pipeline thí nghiệm sau
+huấn luyện**, không phải các layer của ResNet. Do đó chúng chạy bằng
+Python/TensorFlow Lite, không có hàm C99 tương ứng trong `firmware/`. Đây là
+phân biệt bắt buộc khi trình bày để không tuyên bố sai rằng firmware hiện đã
+chạy INT8.
+
+| Node PTQ | Thuật toán / công thức | Mã triển khai | Có C99 trong `firmware/`? |
+| --- | --- | --- | --- |
+| Chọn mẫu calibration | lấy `n` chỉ số không lặp từ `x_train` với seed; `n ∈ {50,200,500}` | `src/calibration.py::select_calibration` | Không — bước chuẩn bị thí nghiệm |
+| Representative dataset | đưa các tensor train đã Z-score qua converter để quan sát miền activation | `src/quantize.py::_representative_dataset` | Không — do TFLite Converter thực hiện |
+| Quantize affine | Mục 2.12: `q=clip(round(r/S+Z),-128,127)` | cấu hình `TFLiteConverter` trong `src/quantize.py::run` | Không — tạo `.tflite`; C hiện chỉ FP32 |
+| Kiểm tra full-integer | xác minh input/output INT8 và không có tensor float fallback | `src/quantize.py::_inspect_tflite` | Không |
+| INT8 inference để đo | lượng tử hóa input, chạy `Interpreter`, giải lượng tử logits | `src/evaluate.py::infer_tflite` | Không — interpreter TFLite trên Python |
+| Chọn cấu hình | gom 3 seed theo calibration size, ưu tiên mean accuracy rồi macro-F1 | `src/evaluate.py::_select_calibration_size` | Không — logic đánh giá |
+| Test/report | accuracy, macro-F1, bytes, confusion matrix trên test chỉ sau khi chọn | `src/evaluate.py::run` | Không — đánh giá thí nghiệm |
+
+Nếu mở rộng sau này sang firmware INT8, cần cài riêng Conv INT8 tích luỹ
+`int32`, requantize theo `scale/zero_point` (mục 2.12), và export trọng số
+INT8. Việc đó được ghi rõ là hướng phát triển, không thuộc firmware FP32
+hiện tại.
+
+### 1.8 Sơ đồ trực quan
 
 Bản vẽ matplotlib có nhánh thật (2 điểm rẽ nhánh, 2 node ⊕, nhãn "Nhánh A
 (main)"/"Nhánh B (shortcut)"/"Nhánh B (identity)") tại

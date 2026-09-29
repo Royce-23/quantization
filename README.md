@@ -51,6 +51,8 @@ golden vector kèm theo) cộng `models/params_fp32.npz` +
 `models/params_manifest.json`. Xem
 [hướng dẫn build/chạy C](firmware/README.md) và
 [tài liệu kiến trúc + thuật toán](docs/model_architecture_and_c_inference.md).
+Trong tài liệu kiến trúc, mục **1.6–1.7** là bảng tra cứu từng node: công
+thức, thuật toán, parameter, code Python/C và ranh giới FP32/INT8.
 
 `describe-params` (chạy sau `export-c`) đọc `models/params_fp32.npz` và sinh
 báo cáo tham số chi tiết (vai trò, nhánh, công thức, tên biến C, thống kê
