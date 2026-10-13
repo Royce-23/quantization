@@ -1,0 +1,188 @@
+<mxfile host="app.diagrams.net" modified="2026-10-04T00:00:00.000Z" agent="claude-code" version="24.0.0" type="device">
+  <diagram name="ResNetv1-6 — Luong thuat toan" id="resnetv16-flow">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1000" pageHeight="2050" math="1" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- ================= TITLE ================= -->
+        <mxCell id="title" value="LUỒNG THUẬT TOÁN SUY LUẬN — ResNetv1-6 1D (UCI-HAR)&lt;br&gt;&lt;font style=&quot;font-size:11px&quot; color=&quot;#666666&quot;&gt;Xanh = Nhánh A (main path) · Cam = Nhánh B (shortcut/identity) · Vàng ⊕ = hợp nhánh · Xám = thân chung&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;fontSize=18;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="100" y="10" width="800" height="55" as="geometry" />
+        </mxCell>
+
+        <!-- ================= RAW INPUT + N0 ================= -->
+        <mxCell id="raw" value="xraw — dữ liệu cảm biến thô&lt;br&gt;(128, 9)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;align=center;verticalAlign=middle;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="370" y="90" width="260" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="n0" value="&lt;b&gt;N0 · Chuẩn hoá Z-score&lt;/b&gt; (ngoài đồ thị Keras)&lt;br&gt;$$x^{n}_{t,c} = \dfrac{x^{raw}_{t,c}-\mu_c}{\sigma_c}$$&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;μ, σ fit trên tập train · (128,9) → (128,9)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=left;verticalAlign=middle;spacingLeft=8;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="330" y="170" width="340" height="90" as="geometry" />
+        </mxCell>
+
+        <!-- ================= BLOCK 1 LABEL ================= -->
+        <mxCell id="b1label" value="BLOCK 1 — residual, đổi shape (128,9) → (64,32)" style="text;html=1;align=center;verticalAlign=middle;fontSize=12;fontStyle=2;fontColor=#555555;" vertex="1" parent="1">
+          <mxGeometry x="280" y="270" width="440" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- ================= NHANH A1 (main, Block1) ================= -->
+        <mxCell id="n1" value="&lt;b&gt;N1 · block1_conv1&lt;/b&gt; — Conv1D K=3, same, bias&lt;br&gt;$$y_{t,c_o}=b_{c_o}+\sum_{k=0}^{K-1}\sum_{c_i=0}^{C_{in}-1} W_{k,c_i,c_o}\;\tilde{x}_{t+k-p,\,c_i}$$&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;K=3, p=1 · (128,9) → (128,32) · 896 tham số&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;verticalAlign=middle;spacingLeft=8;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="300" width="340" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="n2" value="&lt;b&gt;N2 · block1_relu1&lt;/b&gt; — ReLU&lt;br&gt;$$y_{t,c} = \max(0,\,x_{t,c})$$&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;(128,32)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;verticalAlign=middle;spacingLeft=8;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="420" width="340" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="n3" value="&lt;b&gt;N3 · block1_conv2&lt;/b&gt; — Conv1D K=3, same, bias&lt;br&gt;$$y_{t,c_o}=b_{c_o}+\sum_{k=0}^{K-1}\sum_{c_i=0}^{C_{in}-1} W_{k,c_i,c_o}\;\tilde{x}_{t+k-p,\,c_i}$$&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;K=3, p=1 · (128,32) → (128,32) · 3.104 tham số&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;verticalAlign=middle;spacingLeft=8;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="510" width="340" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="n4" value="&lt;b&gt;N4 · block1_main_pool&lt;/b&gt; — MaxPool1D /2&lt;br&gt;$$y_{t,c} = \max\big(x_{2t,c},\,x_{2t+1,c}\big)$$&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;(128,32) → (64,32)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;verticalAlign=middle;spacingLeft=8;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="630" width="340" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- ================= NHANH B1 (shortcut, Block1) ================= -->
+        <mxCell id="n5" value="&lt;b&gt;N5 · block1_projection&lt;/b&gt; — Conv1D K=1 (≡ valid, p=0)&lt;br&gt;$$y_{t,c_o}=b_{c_o}+\sum_{c_i=0}^{C_{in}-1} W_{0,c_i,c_o}\;x_{t,c_i}$$&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;K=1, p=0 · (128,9) → (128,32) · 320 tham số · đổi 9→32 kênh&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;align=left;verticalAlign=middle;spacingLeft=8;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="640" y="300" width="340" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="n6" value="&lt;b&gt;N6 · block1_shortcut_pool&lt;/b&gt; — MaxPool1D /2&lt;br&gt;$$y_{t,c} = \max\big(x_{2t,c},\,x_{2t+1,c}\big)$$&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;(128,32) → (64,32) · khớp shape với nhánh A1&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;align=left;verticalAlign=middle;spacingLeft=8;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="640" y="420" width="340" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- ================= MERGE 1 ================= -->
+        <mxCell id="merge1" value="N7 ⊕&lt;br&gt;$$F+S$$" style="ellipse;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=center;verticalAlign=middle;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="400" y="730" width="140" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="n8" value="&lt;b&gt;N8 · block1_output&lt;/b&gt; — ReLU trên tổng hai nhánh&lt;br&gt;$$x^{1}_{t,c} = \max\big(0,\;F_{t,c}+S_{t,c}\big)$$&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;F = N4 (main) , S = N6 (shortcut) · ra (64,32)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=left;verticalAlign=middle;spacingLeft=8;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="320" y="850" width="340" height="90" as="geometry" />
+        </mxCell>
+
+        <!-- ================= BLOCK 2 LABEL ================= -->
+        <mxCell id="b2label" value="BLOCK 2 — residual, giữ nguyên shape (64,32) → (64,32)" style="text;html=1;align=center;verticalAlign=middle;fontSize=12;fontStyle=2;fontColor=#555555;" vertex="1" parent="1">
+          <mxGeometry x="280" y="960" width="440" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- ================= NHANH A2 (main, Block2) ================= -->
+        <mxCell id="n9" value="&lt;b&gt;N9 · block2_conv1&lt;/b&gt; — Conv1D K=3, same, bias&lt;br&gt;$$y_{t,c_o}=b_{c_o}+\sum_{k=0}^{K-1}\sum_{c_i=0}^{C_{in}-1} W_{k,c_i,c_o}\;\tilde{x}_{t+k-p,\,c_i}$$&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;K=3, p=1 · (64,32) → (64,32) · 3.104 tham số&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;verticalAlign=middle;spacingLeft=8;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="1000" width="340" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="n10" value="&lt;b&gt;N10 · block2_relu1&lt;/b&gt; — ReLU&lt;br&gt;$$y_{t,c} = \max(0,\,x_{t,c})$$&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;(64,32)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;verticalAlign=middle;spacingLeft=8;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="1120" width="340" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="n11" value="&lt;b&gt;N11 · block2_conv2&lt;/b&gt; — Conv1D K=3, same, bias&lt;br&gt;$$y_{t,c_o}=b_{c_o}+\sum_{k=0}^{K-1}\sum_{c_i=0}^{C_{in}-1} W_{k,c_i,c_o}\;\tilde{x}_{t+k-p,\,c_i}$$&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;K=3, p=1 · (64,32) → (64,32) · 3.104 tham số&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;align=left;verticalAlign=middle;spacingLeft=8;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="40" y="1210" width="340" height="100" as="geometry" />
+        </mxCell>
+
+        <!-- ================= NHANH B2 (identity, Block2) ================= -->
+        <mxCell id="b2id" value="&lt;b&gt;Nhánh B2 · identity shortcut&lt;/b&gt;&lt;br&gt;$$S_{t,c} = x^{1}_{t,c}$$&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;không phép toán, không tham số · (64,32) · lý do: shape main/shortcut đã khớp sẵn&lt;/font&gt;" style="rounded=1;dashed=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;align=left;verticalAlign=middle;spacingLeft=8;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="640" y="1080" width="340" height="90" as="geometry" />
+        </mxCell>
+
+        <!-- ================= MERGE 2 ================= -->
+        <mxCell id="merge2" value="N12 ⊕&lt;br&gt;$$F+S$$" style="ellipse;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;align=center;verticalAlign=middle;fontSize=13;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="400" y="1340" width="140" height="80" as="geometry" />
+        </mxCell>
+
+        <mxCell id="n13" value="&lt;b&gt;N13 · block2_output&lt;/b&gt; — ReLU trên tổng hai nhánh&lt;br&gt;$$x^{2}_{t,c} = \max\big(0,\;F_{t,c}+S_{t,c}\big)$$&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;F = N11 (main) , S = x1 (identity) · ra (64,32)&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=left;verticalAlign=middle;spacingLeft=8;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="320" y="1460" width="340" height="90" as="geometry" />
+        </mxCell>
+
+        <!-- ================= HEAD ================= -->
+        <mxCell id="headlabel" value="HEAD — phân loại" style="text;html=1;align=center;verticalAlign=middle;fontSize=12;fontStyle=2;fontColor=#555555;" vertex="1" parent="1">
+          <mxGeometry x="280" y="1565" width="440" height="20" as="geometry" />
+        </mxCell>
+
+        <mxCell id="n14" value="&lt;b&gt;N14 · global_max_pool&lt;/b&gt; — GlobalMaxPooling1D&lt;br&gt;$$g_c = \max_{0 \le t &lt; L} x_{t,c}$$&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;(64,32) → (32,) · lấy max theo trục thời gian&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=left;verticalAlign=middle;spacingLeft=8;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="320" y="1595" width="340" height="90" as="geometry" />
+        </mxCell>
+
+        <mxCell id="n15" value="&lt;b&gt;N15 · activity_logits&lt;/b&gt; — Dense, bias, KHÔNG activation&lt;br&gt;$$z_o = b_o + \sum_{i=0}^{D_{in}-1} g_i\,W_{i,o}$$&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;(32,) → (6,) · 198 tham số · ra LOGITS THÔ&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;align=left;verticalAlign=middle;spacingLeft=8;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="320" y="1705" width="340" height="95" as="geometry" />
+        </mxCell>
+
+        <mxCell id="argmax" value="&lt;b&gt;Dự đoán lớp&lt;/b&gt;&lt;br&gt;$$\hat{y} = \operatorname*{arg\,max}_{o}\; z_o$$&lt;br&gt;&lt;font style=&quot;font-size:10px&quot;&gt;softmax CHƯA nằm trong model (chỉ demo) · lớp 0..5&lt;/font&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;align=left;verticalAlign=middle;spacingLeft=8;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="320" y="1820" width="340" height="80" as="geometry" />
+        </mxCell>
+
+        <!-- ================= LEGEND ================= -->
+        <mxCell id="legend" value="&lt;b&gt;Chú giải &amp; định nghĩa phụ&lt;/b&gt;&lt;br&gt;🟦 Nhánh A — main path (có trọng số)&lt;br&gt;🟧 Nhánh B — shortcut (projection ở Block1, identity ở Block2)&lt;br&gt;🟡 ⊕ — điểm hợp nhánh (cộng phần tử)&lt;br&gt;⬜ Xám/xanh lá — thân chung, không rẽ nhánh&lt;br&gt;$$p=\left\lfloor K/2 \right\rfloor$$&lt;br&gt;$$\tilde{x}_{s,c}=\begin{cases}x_{s,c}, &amp; 0\le s&lt;L\\0, &amp; \text{khác}\end{cases}$$" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffffff;strokeColor=#999999;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="40" y="1705" width="250" height="220" as="geometry" />
+        </mxCell>
+
+        <!-- ================= EDGES ================= -->
+        <mxCell id="e_raw_n0" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#333333;strokeWidth=2;" edge="1" parent="1" source="raw" target="n0">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_n0_n1" value="Nhánh A1 (main)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#6c8ebf;strokeWidth=2;fontColor=#6c8ebf;fontSize=10;fontStyle=1;" edge="1" parent="1" source="n0" target="n1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_n0_n5" value="Nhánh B1 (shortcut)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#d79b00;strokeWidth=2;fontColor=#d79b00;fontSize=10;fontStyle=1;" edge="1" parent="1" source="n0" target="n5">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_n1_n2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#6c8ebf;strokeWidth=2;" edge="1" parent="1" source="n1" target="n2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_n2_n3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#6c8ebf;strokeWidth=2;" edge="1" parent="1" source="n2" target="n3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_n3_n4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#6c8ebf;strokeWidth=2;" edge="1" parent="1" source="n3" target="n4">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_n5_n6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#d79b00;strokeWidth=2;" edge="1" parent="1" source="n5" target="n6">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_n4_m1" value="F" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#6c8ebf;strokeWidth=2;fontColor=#6c8ebf;fontSize=10;" edge="1" parent="1" source="n4" target="merge1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_n6_m1" value="S" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#d79b00;strokeWidth=2;fontColor=#d79b00;fontSize=10;" edge="1" parent="1" source="n6" target="merge1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_m1_n8" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#333333;strokeWidth=2;" edge="1" parent="1" source="merge1" target="n8">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_n8_n9" value="Nhánh A2 (main)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#6c8ebf;strokeWidth=2;fontColor=#6c8ebf;fontSize=10;fontStyle=1;" edge="1" parent="1" source="n8" target="n9">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_n8_b2id" value="Nhánh B2 (identity)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#d79b00;strokeWidth=2;dashed=1;fontColor=#d79b00;fontSize=10;fontStyle=1;" edge="1" parent="1" source="n8" target="b2id">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_n9_n10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#6c8ebf;strokeWidth=2;" edge="1" parent="1" source="n9" target="n10">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_n10_n11" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#6c8ebf;strokeWidth=2;" edge="1" parent="1" source="n10" target="n11">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_n11_m2" value="F" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#6c8ebf;strokeWidth=2;fontColor=#6c8ebf;fontSize=10;" edge="1" parent="1" source="n11" target="merge2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_b2id_m2" value="S" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#d79b00;strokeWidth=2;dashed=1;fontColor=#d79b00;fontSize=10;" edge="1" parent="1" source="b2id" target="merge2">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_m2_n13" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#333333;strokeWidth=2;" edge="1" parent="1" source="merge2" target="n13">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_n13_n14" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#333333;strokeWidth=2;" edge="1" parent="1" source="n13" target="n14">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_n14_n15" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#333333;strokeWidth=2;" edge="1" parent="1" source="n14" target="n15">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e_n15_argmax" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#333333;strokeWidth=2;" edge="1" parent="1" source="n15" target="argmax">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
