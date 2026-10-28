@@ -25,4 +25,4 @@ Script đọc `results/*.csv`, `models/*.json`, `models/params_fp32.npz`, `data/
 và tự kiểm tra chéo với `results/parameters_reference.md` (thống kê tham số) cùng ma trận nhầm lẫn
 (tổng đường chéo phải bằng số mẫu đúng ở `results/metrics.csv`).
 
-Tên thành viên, MSSV, giảng viên và trường trên trang bìa để dấu chấm; điền trực tiếp trong `main.tex`.
+Trang bìa (trường, thành viên, MSSV, giảng viên) sửa trực tiếp trong `main.tex`; dòng Khoa vẫn để dấu chấm.
