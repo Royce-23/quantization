@@ -1,0 +1,21 @@
+\begin{tabular}{llrrrrr}
+\toprule
+Tập & Mô hình & Seed & Accuracy (\%) & Macro-F1 & Số mẫu đúng & Số mẫu sai \\
+\midrule
+Validation & FP32 & -- & 95,8249 & 0,9621 & 1.423 & 62 \\
+Validation & INT8 $n=50$ & 11 & 95,6902 & 0,9609 & 1.421 & 64 \\
+Validation & INT8 $n=50$ & 22 & 95,4882 & 0,9590 & 1.418 & 67 \\
+Validation & INT8 $n=50$ & 33 & 95,8249 & 0,9621 & 1.423 & 62 \\
+Validation & INT8 $n=200$ & 11 & 95,8249 & 0,9621 & 1.423 & 62 \\
+Validation & INT8 $n=200$ & 22 & 95,6902 & 0,9608 & 1.421 & 64 \\
+Validation & INT8 $n=200$ & 33 & 95,6229 & 0,9602 & 1.420 & 65 \\
+Validation & INT8 $n=500$ & 11 & 95,6229 & 0,9602 & 1.420 & 65 \\
+Validation & INT8 $n=500$ & 22 & 95,9596 & 0,9633 & 1.425 & 60 \\
+Validation & INT8 $n=500$ & 33 & 95,6902 & 0,9608 & 1.421 & 64 \\
+\midrule
+Test & FP32 & -- & 92,6026 & 0,9271 & 2.729 & 218 \\
+Test & INT8 $n=500$ & 11 & 91,9240 & 0,9208 & 2.709 & 238 \\
+Test & INT8 $n=500$ & 22 & 92,4669 & 0,9259 & 2.725 & 222 \\
+Test & INT8 $n=500$ & 33 & 92,1615 & 0,9228 & 2.716 & 231 \\
+\bottomrule
+\end{tabular}

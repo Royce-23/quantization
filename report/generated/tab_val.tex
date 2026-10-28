@@ -1,0 +1,10 @@
+\begin{tabular}{lrrrr}
+\toprule
+Mô hình & Số lần chạy & Accuracy (\%) & Macro-F1 & Dung lượng (byte) \\
+\midrule
+FP32 (TFLite) & 1 & 95,8249 & 0,9621 & 51.728 \\
+INT8, $n=50$ & 3 & 95,6678 $\pm$ 0,1695 & 0,9607 $\pm$ 0,0015 & 25.104 \\
+INT8, $n=200$ & 3 & 95,7127 $\pm$ 0,1029 & 0,9611 $\pm$ 0,0009 & 25.104 \\
+INT8, $n=500$ & 3 & \textbf{95,7576 $\pm$ 0,1782} & \textbf{0,9614 $\pm$ 0,0016} & 25.104 \\
+\bottomrule
+\end{tabular}

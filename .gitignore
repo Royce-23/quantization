@@ -34,3 +34,12 @@ firmware/build/
 .bangiao/
 # Log lỗi test tự động của công cụ nội bộ, không đưa lên repository chính
 .claude/
+
+# LaTeX: file trung gian khi biên dịch báo cáo (giữ lại report/main.pdf)
+report/*.aux
+report/*.log
+report/*.toc
+report/*.out
+report/*.xdv
+report/*.fls
+report/*.fdb_latexmk

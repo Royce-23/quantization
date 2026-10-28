@@ -1,0 +1,14 @@
+\begin{tabular}{rllllrrr}
+\toprule
+\# & Layer & Khối & Nhánh & Phép toán & Shape kernel & Số tham số & \% tổng \\
+\midrule
+1 & \texttt{block1\_conv1} & Khối 1 & A (chính) & Conv1D, $K{=}3$, same & (3, 9, 32) & 896 & 8,35 \\
+2 & \texttt{block1\_conv2} & Khối 1 & A (chính) & Conv1D, $K{=}3$, same & (3, 32, 32) & 3.104 & 28,94 \\
+3 & \texttt{block1\_projection} & Khối 1 & B (shortcut) & Conv1D, $K{=}1$, valid & (1, 9, 32) & 320 & 2,98 \\
+4 & \texttt{block2\_conv1} & Khối 2 & A (chính) & Conv1D, $K{=}3$, same & (3, 32, 32) & 3.104 & 28,94 \\
+5 & \texttt{block2\_conv2} & Khối 2 & A (chính) & Conv1D, $K{=}3$, same & (3, 32, 32) & 3.104 & 28,94 \\
+6 & \texttt{activity\_logits} & Đầu ra & -- & Dense $32\to6$ & (32, 6) & 198 & 1,85 \\
+\midrule
+& & & & & \textbf{Tổng} & \textbf{10.726} & \textbf{100,00} \\
+\bottomrule
+\end{tabular}
